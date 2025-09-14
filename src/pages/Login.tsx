@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import AuthNavbar from "../components/AuthNavbar";
 import { supabase } from "../lib/supabaseClient";
 import { FaGoogle, FaEnvelope } from "react-icons/fa";
-
+import LoginIllustration from "../assets/login-illustration.svg"; 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -117,7 +117,7 @@ export default function Login() {
           {/* Left Illustration */}
           <div className="flex justify-center items-center">
             <img
-              src="src/assets/login-illustration.svg"
+              src={LoginIllustration}
               alt="Login Illustration"
             />
           </div>

@@ -1,5 +1,6 @@
 // src/components/AfterLoginNavbar.tsx
 import { useNavigate } from "react-router-dom";
+import Logo from "../assets/logo.png"; 
 import {
   FaHome,
   FaBriefcase,
@@ -37,7 +38,7 @@ export default function AfterLoginNavbar() {
       {/* Logo */}
       <div className="flex items-center gap-2">
         <img
-          src="/src/assets/logo.png"
+          src={Logo}
           alt="Logo"
           className="h-12 w-auto object-contain"
         />
@@ -55,7 +56,7 @@ export default function AfterLoginNavbar() {
           onClick={() => handleNav("/home2")}
           className="flex flex-col items-center text-xs hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50"
         >
-          <FaHome className="text-2xl mb-1" />
+          <FaHome className="text-xl mb-1" />
           Home
         </button>
         <button
@@ -69,21 +70,21 @@ export default function AfterLoginNavbar() {
           onClick={() => handleNav("/post-job")}
           className="flex flex-col items-center text-xs hover:text-purple-600 p-2 rounded-lg hover:bg-purple-50"
         >
-          <MdPostAdd className="text-2xl mb-1" />
+          <MdPostAdd className="text-xl mb-1" />
           Post
         </button>
         <button
           onClick={() => handleNav("/help")}
           className="flex flex-col items-center text-xs hover:text-orange-600 p-2 rounded-lg hover:bg-orange-50"
         >
-          <FaRegQuestionCircle className="text-2xl mb-1" />
+          <FaRegQuestionCircle className="text-xl mb-1" />
           Help
         </button>
         <button
           onClick={() => handleNav("/notifications")}
           className="flex flex-col items-center text-xs hover:text-red-600 p-2 rounded-lg hover:bg-red-50 relative"
         >
-          <IoMdNotificationsOutline className="text-2xl mb-1" />
+          <IoMdNotificationsOutline className="text-xl mb-1" />
           Alerts
         </button>
 
@@ -93,7 +94,7 @@ export default function AfterLoginNavbar() {
             onClick={handleDropdownToggle}
             className="flex flex-col items-center text-xs hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50"
           >
-            <FaUser className="text-2xl mb-1" />
+            <FaUser className="text-xl mb-1" />
             <span>{profile?.first_name || "Me"}</span>
           </button>
 

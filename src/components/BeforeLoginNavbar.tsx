@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { FaHome, FaBriefcase, FaRegQuestionCircle, FaSignInAlt, FaUserPlus } from "react-icons/fa";
 import { MdPostAdd } from "react-icons/md";
-
+import Logo from "../assets/logo.png"; 
 export default function BeforeLoginNavbar() {
   const navigate = useNavigate();
 
@@ -9,7 +9,7 @@ export default function BeforeLoginNavbar() {
     <nav className="flex justify-between items-center px-6 py-4 bg-white shadow-md sticky top-0 z-50">
       {/* Logo */}
       <div className="flex items-center gap-2">
-        <img src="/src/assets/logo.png" alt="Logo"className="h-12 w-auto object-contain"/>
+        <img src={Logo} alt="Logo"className="h-12 w-auto object-contain"/>
         <button 
           onClick={() => navigate("/")}
           className="font-semibold text-lg hover:text-blue-600 transition-colors"
