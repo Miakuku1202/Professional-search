@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import AfterLoginNavbar from "../components/AfterLoginNavbar";
 import { Bell, CheckCircle2, MessageSquare, Briefcase } from "lucide-react";
 

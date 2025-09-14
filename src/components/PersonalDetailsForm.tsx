@@ -1,5 +1,3 @@
-import React from "react";
-
 type Props = {
   formData: { [key: string]: string };
   onChange: (field: string, value: string) => void;

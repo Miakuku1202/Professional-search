@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-
+import  { useState } from "react";
 export default function FilterSidebar() {
   const [selectedJobTypes, setSelectedJobTypes] = useState<string[]>([]);
   const [selectedLocation, setSelectedLocation] = useState("");

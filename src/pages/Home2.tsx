@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import AfterLoginNavbar from "../components/AfterLoginNavbar";
 import { supabase } from "../lib/supabaseClient";
 import Hero from "../components/hero";
@@ -12,7 +12,7 @@ import toast, { Toaster } from "react-hot-toast";
 
 export default function Home2() {
   const [loading, setLoading] = useState(true);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [ , setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const saveProfile = async () => {

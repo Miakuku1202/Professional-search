@@ -13,7 +13,7 @@ export default function ResetPassword() {
     setError(null);
     setMessage(null);
 
-    const { data, error } = await supabase.auth.updateUser({
+    const { error } = await supabase.auth.updateUser({
       password,
     });
 
