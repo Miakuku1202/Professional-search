@@ -2,10 +2,19 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useNavigate } from "react-router-dom";
 import AfterLoginNavbar from "../components/AfterLoginNavbar";
-import { Download, ArrowLeft, Share2 } from "lucide-react";
-import { jsPDF } from "jspdf";
-import { motion } from "framer-motion";
+import {
+  Download,
+  ArrowLeft,
+  Share2,
+  Phone,
+  Mail,
+  MapPin,
+  Globe,
+  Linkedin,
+  MoreVertical,
+} from "lucide-react";
 import { toPng } from "html-to-image";
+import { jsPDF } from "jspdf";
 
 interface UserProfile {
   name: string;
@@ -33,7 +42,9 @@ export default function ProfileCard() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState(false);
+  const [downloadingPng, setDownloadingPng] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [showActions, setShowActions] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -49,7 +60,6 @@ export default function ProfileCard() {
           setError("Failed to get user");
           return;
         }
-
         if (!user) {
           navigate("/login");
           return;
@@ -67,7 +77,7 @@ export default function ProfileCard() {
         } else {
           setUserProfile(userProfileData as UserProfile);
         }
-      } catch (err) {
+      } catch {
         setError("Unexpected error occurred");
       } finally {
         setLoading(false);
@@ -77,65 +87,91 @@ export default function ProfileCard() {
     fetchProfile();
   }, [navigate]);
 
+  // ✅ Fixed download function
   const handleDownload = async (format: "pdf" | "png") => {
     if (!cardRef.current || !userProfile) return;
 
-    setDownloading(true);
+    if (format === "png") {
+      setDownloadingPng(true);
+    } else {
+      setDownloadingPdf(true);
+    }
 
     try {
       const dataUrl = await toPng(cardRef.current, {
         cacheBust: true,
-        pixelRatio: 2,
+        pixelRatio: 3, // high quality
       });
 
       if (format === "png") {
         const link = document.createElement("a");
-        link.download = `${userProfile.name}-profile-card.png`;
+        link.download = `${userProfile.name.replace(/\s+/g, "_")}-profile-card.png`;
         link.href = dataUrl;
         link.click();
       } else {
         const pdf = new jsPDF("p", "mm", "a4");
         const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
         const imgProps = pdf.getImageProperties(dataUrl);
+        let imgWidth = pageWidth;
+        let imgHeight = (imgProps.height * imgWidth) / imgProps.width;
 
-        const imgWidth = pageWidth;
-        const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+        if (imgHeight > pageHeight) {
+          imgHeight = pageHeight;
+          imgWidth = (imgProps.width * imgHeight) / imgProps.height;
+        }
 
-        pdf.addImage(dataUrl, "PNG", 0, 0, imgWidth, imgHeight);
-        pdf.save(`${userProfile.name}-profile-card.pdf`);
+        const x = (pageWidth - imgWidth) / 2;
+        const y = (pageHeight - imgHeight) / 2;
+
+        pdf.addImage(dataUrl, "PNG", x, y, imgWidth, imgHeight);
+        pdf.save(`${userProfile.name.replace(/\s+/g, "_")}-profile-card.pdf`);
       }
     } catch (error) {
       console.error("Download failed:", error);
       alert("Download failed. Please try again.");
     } finally {
-      setDownloading(false);
+      if (format === "png") {
+        setDownloadingPng(false);
+      } else {
+        setDownloadingPdf(false);
+      }
     }
   };
 
+  // ✅ Fixed share function
   const handleShare = async () => {
-    if (!userProfile) return;
-
-    const profileUrl = `${window.location.origin}/public-profile/${encodeURIComponent(
-      userProfile.name
-    )}`;
+    const profileUrl = `${window.location.origin}/profile-card`;
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `${userProfile.name}'s Profile`,
-          text: `Check out ${userProfile.name}'s professional profile`,
+          title: `${userProfile?.name}'s Professional Profile`,
+          text: `Check out ${userProfile?.name}'s profile - ${userProfile?.profession}`,
           url: profileUrl,
         });
+        return;
       } catch (error) {
-        console.log("Share cancelled", error);
+        console.log("Share failed, using fallback:", error);
       }
-    } else {
-      try {
-        await navigator.clipboard.writeText(profileUrl);
-        alert("Profile link copied! Share it anywhere.");
-      } catch (error) {
-        console.error("Copy failed:", error);
-      }
+    }
+
+    const shareText = `🔗 ${userProfile?.name}'s Profile\n\n${userProfile?.profession}\n\nView profile: ${profileUrl}`;
+
+    try {
+      await navigator.clipboard.writeText(shareText);
+      alert("✅ Profile details copied to clipboard!");
+    } catch (error) {
+      const textArea = document.createElement("textarea");
+      textArea.value = shareText;
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      alert("✅ Profile details copied to clipboard!");
     }
   };
 
@@ -164,162 +200,319 @@ export default function ProfileCard() {
     <>
       <AfterLoginNavbar />
 
-      <div className="max-w-4xl mx-auto p-4 sm:p-6">
-        {/* Header with actions */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-6">
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+        {/* Desktop View */}
+        <div className="hidden sm:flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
           <button
             onClick={() => navigate("/profile")}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors w-full sm:w-auto justify-center"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 sm:py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <ArrowLeft size={16} />
             Back to Profile
           </button>
 
-          <div className="flex flex-wrap justify-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <button
               onClick={handleShare}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors w-full sm:w-auto justify-center"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 sm:py-2 text-white rounded-lg transition-colors"
+              style={{ backgroundColor: "#9333ea" }}
             >
               <Share2 size={16} />
               Share
             </button>
             <button
               onClick={() => handleDownload("png")}
-              disabled={downloading}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 w-full sm:w-auto justify-center"
+              disabled={downloadingPng}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 sm:py-2 text-white rounded-lg transition-colors disabled:opacity-50"
+              style={{ backgroundColor: "#2563eb" }}
             >
               <Download size={16} />
-              {downloading ? "Downloading..." : "PNG"}
+              {downloadingPng ? "Downloading..." : "PNG"}
             </button>
             <button
               onClick={() => handleDownload("pdf")}
-              disabled={downloading}
-              className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 w-full sm:w-auto justify-center"
+              disabled={downloadingPdf}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 sm:py-2 text-white rounded-lg transition-colors disabled:opacity-50"
+              style={{ backgroundColor: "#059669" }}
             >
               <Download size={16} />
-              {downloading ? "Downloading..." : "PDF"}
+              {downloadingPdf ? "Downloading..." : "PDF"}
             </button>
           </div>
         </div>
 
+        {/* Mobile View */}
+        <div className="flex sm:hidden items-center justify-between mb-6">
+          <button
+            onClick={() => navigate("/profile")}
+            className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+
+          <div className="relative">
+            <button
+              onClick={() => setShowActions(!showActions)}
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <MoreVertical size={20} />
+            </button>
+
+            {showActions && (
+              <div
+                className="absolute right-0 top-12 w-48 rounded-lg shadow-lg border overflow-hidden z-10"
+                style={{ backgroundColor: "#ffffff" }}
+              >
+                <button
+                  onClick={() => {
+                    handleShare();
+                    setShowActions(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <Share2 size={16} />
+                  <span>Share Profile</span>
+                </button>
+                <button
+                  onClick={() => {
+                    handleDownload("png");
+                    setShowActions(false);
+                  }}
+                  disabled={downloadingPng}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  <Download size={16} />
+                  <span>
+                    {downloadingPng ? "Downloading PNG..." : "Download PNG"}
+                  </span>
+                </button>
+                <button
+                  onClick={() => {
+                    handleDownload("pdf");
+                    setShowActions(false);
+                  }}
+                  disabled={downloadingPdf}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  <Download size={16} />
+                  <span>
+                    {downloadingPdf ? "Downloading PDF..." : "Download PDF"}
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Profile Card */}
-        <motion.div
+        <div
           ref={cardRef}
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-3xl p-6 sm:p-8 shadow-2xl max-w-2xl mx-auto w-full"
-          style={{ minHeight: "500px" }}
+          className="w-full max-w-md mx-auto rounded-2xl shadow-2xl overflow-hidden"
+          style={{ backgroundColor: "#ffffff" }}
         >
-          {/* Header Section */}
-          <div className="text-center mb-6 sm:mb-8">
-            <div className="relative inline-block mb-4">
+          <div
+            className="relative px-6 py-8 text-white"
+            style={{
+              background:
+                "linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #1d4ed8 100%)",
+            }}
+          >
+            <div className="flex justify-center mb-4">
               {userProfile.logo_url ? (
                 <img
                   src={userProfile.logo_url}
                   alt="Profile"
-                  className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white shadow-lg mx-auto"
+                  className="w-24 h-24 rounded-full object-cover border-4 shadow-lg"
+                  style={{ borderColor: "#ffffff" }}
                   crossOrigin="anonymous"
+                  loading="eager"
                 />
               ) : (
-                <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center border-4 border-white shadow-lg mx-auto">
-                  <span className="text-white text-3xl sm:text-4xl font-bold">
+                <div
+                  className="w-24 h-24 rounded-full flex items-center justify-center border-4 shadow-lg"
+                  style={{
+                    backgroundColor: "rgba(255, 255, 255, 0.2)",
+                    borderColor: "#ffffff",
+                  }}
+                >
+                  <span className="text-white text-2xl font-bold">
                     {userProfile.name?.charAt(0)?.toUpperCase() || "?"}
                   </span>
                 </div>
               )}
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 sm:mb-2">
+            <h1 className="text-2xl font-bold text-center text-white mb-1">
               {userProfile.name}
             </h1>
-            <p className="text-lg sm:text-xl text-gray-600 mb-2">
-              {userProfile.profession}
-            </p>
-            <div className="inline-block bg-white rounded-full px-3 sm:px-4 py-1 shadow-sm">
-              <span className="text-sm font-medium text-gray-700">
-                {userProfile.experience} years experience
-              </span>
-            </div>
           </div>
 
-          {/* Contact Information */}
-          <div className="bg-white rounded-2xl p-4 sm:p-6 mb-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center">
-              Contact Information
-            </h2>
-            <div className="space-y-3 text-sm sm:text-base">
-              {userProfile.mobile && (
-                <div className="flex items-center justify-center gap-2 text-gray-700">
-                  <span className="text-blue-500">📞</span>
-                  <span className="font-medium">{userProfile.mobile}</span>
-                </div>
-              )}
-              {userProfile.email && (
-                <div className="flex items-center justify-center gap-2 text-gray-700 break-all">
-                  <span className="text-red-500">📧</span>
-                  <span className="font-medium">{userProfile.email}</span>
-                </div>
-              )}
-              {userProfile.address && (
-                <div className="flex items-center justify-center gap-2 text-gray-700 text-center">
-                  <span className="text-green-500">📍</span>
-                  <span className="font-medium">{userProfile.address}</span>
-                </div>
-              )}
-              {userProfile.website && (
-                <div className="flex items-center justify-center gap-2 text-gray-700 break-all">
-                  <span className="text-purple-500">🌐</span>
-                  <span className="font-medium">{userProfile.website}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Skills */}
-          {userProfile.skills && (
-            <div className="bg-white rounded-2xl p-4 sm:p-6 mb-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center">
-                Core Skills
+          <div className="px-6 py-6" style={{ backgroundColor: "#ffffff" }}>
+            <div className="mb-6">
+              <h2
+                className="text-lg font-semibold mb-3"
+                style={{ color: "#2563eb" }}
+              >
+                Professional Summary
               </h2>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {userProfile.skills
-                  .split(",")
-                  .slice(0, 8)
-                  .map((skill, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full text-xs sm:text-sm font-medium"
-                    >
-                      {skill.trim()}
-                    </span>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {/* Summary */}
-          {userProfile.summary && (
-            <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center">
-                About Me
-              </h2>
-              <p className="text-gray-700 leading-relaxed text-center text-sm sm:text-base">
-                {userProfile.summary.length > 200
-                  ? userProfile.summary.substring(0, 200) + "..."
-                  : userProfile.summary}
+              <p
+                className="text-sm leading-relaxed"
+                style={{ color: "#374151" }}
+              >
+                {userProfile.summary ||
+                  `${userProfile.profession} with ${userProfile.experience} years of experience. Skilled professional ready to deliver exceptional results.`}
               </p>
             </div>
-          )}
 
-          {/* Footer */}
-          <div className="mt-6 sm:mt-8 text-center">
-            <div className="inline-block bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-full text-xs sm:text-sm font-medium">
-              Professional Profile Card
+            <div className="space-y-3">
+              {userProfile.mobile && (
+                <div
+                  className="flex items-center gap-3"
+                  style={{ color: "#374151" }}
+                >
+                  <div
+                    className="p-2 rounded-full"
+                    style={{ backgroundColor: "#dbeafe" }}
+                  >
+                    <Phone size={16} style={{ color: "#2563eb" }} />
+                  </div>
+                  <span className="text-sm">{userProfile.mobile}</span>
+                </div>
+              )}
+
+              {userProfile.whatsapp && (
+                <div
+                  className="flex items-center gap-3"
+                  style={{ color: "#374151" }}
+                >
+                  <div
+                    className="p-2 rounded-full"
+                    style={{ backgroundColor: "#dcfce7" }}
+                  >
+                    <Phone size={16} style={{ color: "#059669" }} />
+                  </div>
+                  <span className="text-sm">{userProfile.whatsapp}</span>
+                </div>
+              )}
+
+              {userProfile.email && (
+                <div
+                  className="flex items-center gap-3"
+                  style={{ color: "#374151" }}
+                >
+                  <div
+                    className="p-2 rounded-full"
+                    style={{ backgroundColor: "#fee2e2" }}
+                  >
+                    <Mail size={16} style={{ color: "#dc2626" }} />
+                  </div>
+                  <span className="text-sm">{userProfile.email}</span>
+                </div>
+              )}
+
+              {userProfile.address && (
+                <div
+                  className="flex items-center gap-3"
+                  style={{ color: "#374151" }}
+                >
+                  <div
+                    className="p-2 rounded-full"
+                    style={{ backgroundColor: "#dcfce7" }}
+                  >
+                    <MapPin size={16} style={{ color: "#059669" }} />
+                  </div>
+                  <span className="text-sm">{userProfile.address}</span>
+                </div>
+              )}
+            </div>
+
+            <div
+              className="mt-6 pt-4"
+              style={{ borderTop: "1px solid #f3f4f6" }}
+            >
+              <div className="flex justify-between items-center">
+                <h3
+                  className="text-sm font-semibold"
+                  style={{ color: "#1f2937" }}
+                >
+                  Social Media
+                </h3>
+                <h3
+                  className="text-sm font-semibold"
+                  style={{ color: "#1f2937" }}
+                >
+                  Share This Profile
+                </h3>
+              </div>
+
+              <div className="flex justify-between items-center mt-2">
+                <div className="flex gap-2">
+                  {userProfile.linkedin && (
+                    <a
+                      href={userProfile.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-white p-2 rounded-full transition-colors"
+                      style={{ backgroundColor: "#2563eb" }}
+                    >
+                      <Linkedin size={16} />
+                    </a>
+                  )}
+                  {userProfile.website && (
+                    <a
+                      href={userProfile.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-white p-2 rounded-full transition-colors"
+                      style={{ backgroundColor: "#4b5563" }}
+                    >
+                      <Globe size={16} />
+                    </a>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleShare}
+                    className="text-white p-2 rounded-full transition-colors"
+                    style={{ backgroundColor: "#3b82f6" }}
+                  >
+                    <Share2 size={16} />
+                  </button>
+                  <button
+                    className="text-white p-2 rounded-full transition-colors"
+                    style={{ backgroundColor: "#059669" }}
+                  >
+                    <Phone size={16} />
+                  </button>
+                  <button
+                    className="text-white p-2 rounded-full transition-colors"
+                    style={{ backgroundColor: "#2563eb" }}
+                  >
+                    <Linkedin size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div
+              className="mt-4 pt-4 text-center"
+              style={{ borderTop: "1px solid #f3f4f6" }}
+            >
+              <p className="text-xs" style={{ color: "#9ca3af" }}>
+                Powered by Softcadd
+              </p>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
+
+      {showActions && (
+        <div
+          className="fixed inset-0 z-0 sm:hidden"
+          onClick={() => setShowActions(false)}
+        />
+      )}
     </>
   );
 }
