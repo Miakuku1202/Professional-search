@@ -1,57 +1,51 @@
-// src/components/AfterLoginNavbar.tsx
 import { useNavigate } from "react-router-dom";
-import Logo from "../assets/logo.png"; 
+import Logo from "../assets/logo.png";
 import {
   FaHome,
   FaBriefcase,
   FaRegQuestionCircle,
   FaUser,
+  FaBars,
+  FaTimes,
 } from "react-icons/fa";
 import { MdPostAdd } from "react-icons/md";
 import { IoMdNotificationsOutline } from "react-icons/io";
 import { useState } from "react";
-
-// ✅ Correct relative imports based on your structure
 import { useUser } from "../context/UserContext";
 import { supabase } from "../lib/supabaseClient";
 
 export default function AfterLoginNavbar() {
   const { profile } = useUser();
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate("/"); // redirect to login/home
+    navigate("/");
   };
 
-  const handleDropdownToggle = () => setOpen(!open);
-
-  // Navigation handlers
   const handleNav = (path: string) => {
     navigate(path);
-    setOpen(false); // close dropdown if open
+    setMenuOpen(false);
+    setOpen(false);
   };
 
   return (
-    <nav className="flex justify-between items-center px-8 py-4 bg-white shadow-md sticky top-0 z-50">
+    <nav className="flex justify-between items-center px-4 sm:px-6 py-3 bg-white shadow-md sticky top-0 z-50">
       {/* Logo */}
       <div className="flex items-center gap-2">
-        <img
-          src={Logo}
-          alt="Logo"
-          className="h-12 w-auto object-contain"
-        />
+        <img src={Logo} alt="Logo" className="h-10 w-auto object-contain" />
         <button
           onClick={() => handleNav("/home2")}
-          className="font-bold text-xl hover:text-blue-600 transition-colors duration-200"
+          className="font-bold text-lg sm:text-xl hover:text-blue-600 transition-colors duration-200"
         >
           Professional Search
         </button>
       </div>
 
-      {/* Navigation Buttons */}
-      <div className="flex items-center gap-10">
+      {/* Desktop Menu */}
+      <div className="hidden md:flex items-center gap-8">
         <button
           onClick={() => handleNav("/home2")}
           className="flex flex-col items-center text-xs hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50"
@@ -63,7 +57,7 @@ export default function AfterLoginNavbar() {
           onClick={() => handleNav("/find-job")}
           className="flex flex-col items-center text-xs hover:text-green-600 p-2 rounded-lg hover:bg-green-50"
         >
-          <FaBriefcase className="text-2xl mb-1" />
+          <FaBriefcase className="text-xl mb-1" />
           Jobs
         </button>
         <button
@@ -88,10 +82,10 @@ export default function AfterLoginNavbar() {
           Alerts
         </button>
 
-        {/* User Dropdown */}
+        {/* User Dropdown (desktop) */}
         <div className="relative">
           <button
-            onClick={handleDropdownToggle}
+            onClick={() => setOpen(!open)}
             className="flex flex-col items-center text-xs hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50"
           >
             <FaUser className="text-xl mb-1" />
@@ -103,7 +97,7 @@ export default function AfterLoginNavbar() {
               <div
                 className="fixed inset-0 z-40"
                 onClick={() => setOpen(false)}
-              ></div>
+              />
               <div className="absolute right-0 mt-2 w-52 bg-white shadow-lg rounded-lg border z-50 py-2">
                 <div className="px-4 py-3 border-b border-gray-100">
                   <p className="text-sm font-medium text-gray-800">
@@ -144,6 +138,78 @@ export default function AfterLoginNavbar() {
           )}
         </div>
       </div>
+
+      {/* Mobile Hamburger */}
+      <button
+        onClick={() => setMenuOpen(!menuOpen)}
+        className="md:hidden text-2xl text-gray-700"
+      >
+        {menuOpen ? <FaTimes /> : <FaBars />}
+      </button>
+
+      {/* Mobile Menu */}
+      {menuOpen && (
+        <div className="absolute top-full left-0 w-full bg-white shadow-md flex flex-col items-start p-4 md:hidden">
+          <button
+            onClick={() => handleNav("/home2")}
+            className="w-full flex items-center gap-2 py-2 px-3 hover:bg-blue-50 rounded-md"
+          >
+            <FaHome /> Home
+          </button>
+          <button
+            onClick={() => handleNav("/find-job")}
+            className="w-full flex items-center gap-2 py-2 px-3 hover:bg-green-50 rounded-md"
+          >
+            <FaBriefcase /> Jobs
+          </button>
+          <button
+            onClick={() => handleNav("/post-job")}
+            className="w-full flex items-center gap-2 py-2 px-3 hover:bg-purple-50 rounded-md"
+          >
+            <MdPostAdd /> Post
+          </button>
+          <button
+            onClick={() => handleNav("/help")}
+            className="w-full flex items-center gap-2 py-2 px-3 hover:bg-orange-50 rounded-md"
+          >
+            <FaRegQuestionCircle /> Help
+          </button>
+          <button
+            onClick={() => handleNav("/notifications")}
+            className="w-full flex items-center gap-2 py-2 px-3 hover:bg-red-50 rounded-md"
+          >
+            <IoMdNotificationsOutline /> Alerts
+          </button>
+
+          {/* User Section (mobile) */}
+          <div className="w-full mt-3 border-t pt-3">
+            <p className="text-sm font-medium text-gray-800">
+              {profile?.first_name} {profile?.last_name || ""}
+            </p>
+            <p className="text-xs text-gray-500 mb-2">
+              {profile?.email || "user@example.com"}
+            </p>
+            <button
+              onClick={() => handleNav("/profile")}
+              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
+            >
+              Profile
+            </button>
+            <button
+              onClick={() => handleNav("/settings")}
+              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
+            >
+              Settings
+            </button>
+            <button
+              onClick={handleLogout}
+              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
