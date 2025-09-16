@@ -17,6 +17,8 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [userType, setUserType] = useState<"professional" | "business">("professional");
+  const [businessName, setBusinessName] = useState("");
 
   // Handle Register with email + password
   const handleRegister = async (e: React.FormEvent) => {
@@ -27,17 +29,25 @@ export default function Register() {
 
     try {
       console.log('Starting registration process...');
-      
+
+      let userData: { first_name?: string; last_name?: string; business_name?: string; user_type: string } = {
+        user_type: userType,
+      };
+
+      if (userType === "professional") {
+        userData.first_name = firstName;
+        userData.last_name = lastName;
+      } else {
+        userData.business_name = businessName;
+      }
+
       // Sign up user with Supabase Auth
       // The profile will be automatically created by the onAuthStateChange listener
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { 
-            first_name: firstName, 
-            last_name: lastName 
-          },
+          data: userData, // Store user type and relevant name in metadata
           emailRedirectTo: `${window.location.origin}/create-profile`,
         },
       });
@@ -153,29 +163,63 @@ export default function Register() {
             </h2>
 
             <form onSubmit={handleRegister} className="space-y-4">
-              {/* First Name */}
-              <input
-                id="firstName"
-                name="firstName"
-                type="text"
-                placeholder="Enter Your First Name"
-                className="w-full border rounded-md px-3 py-2"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                required
-              />
+              <div className="mb-4">
+                <label htmlFor="userType" className="block text-sm font-medium text-gray-700">I am a:</label>
+                <select
+                  id="userType"
+                  name="userType"
+                  className="mt-1 block w-full border rounded-md px-3 py-2"
+                  value={userType}
+                  onChange={(e) => setUserType(e.target.value as "professional" | "business")}
+                >
+                  <option value="professional">Professional</option>
+                  <option value="business">Businessman</option>
+                </select>
+              </div>
 
-              {/* Last Name */}
-              <input
-                id="lastName"
-                name="lastName"
-                type="text"
-                placeholder="Enter Your Last Name"
-                className="w-full border rounded-md px-3 py-2"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                required
-              />
+              {userType === "professional" && (
+                <>
+                  {/* First Name */}
+                  <input
+                    id="firstName"
+                    name="firstName"
+                    type="text"
+                    placeholder="Enter Your First Name"
+                    className="w-full border rounded-md px-3 py-2"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+
+                  {/* Last Name */}
+                  <input
+                    id="lastName"
+                    name="lastName"
+                    type="text"
+                    placeholder="Enter Your Last Name"
+                    className="w-full border rounded-md px-3 py-2"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
+                </>
+              )}
+
+              {userType === "business" && (
+                <>
+                  {/* Business Name */}
+                  <input
+                    id="businessName"
+                    name="businessName"
+                    type="text"
+                    placeholder="Enter Your Business Name"
+                    className="w-full border rounded-md px-3 py-2"
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    required
+                  />
+                </>
+              )}
 
               {/* Email */}
               <input

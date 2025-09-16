@@ -34,7 +34,12 @@ export default function Login() {
       console.error("❌ Login failed:", error.message);
     } else if (data?.user && data?.session) {   // ✅ add this check
       console.log("✅ Login success", data);
-      navigate("/home2?justLoggedIn=true");     // redirect after confirmed login
+
+      const userType = data.user.user_metadata?.user_type;
+      console.log("User type after login:", userType);
+
+      // Revert to /home2 redirection as requested
+      navigate("/home2?justLoggedIn=true");
     } else {
       setError("No active session returned. Check your Supabase settings.");
       console.warn("⚠️ Login response missing session:", data);
@@ -52,7 +57,7 @@ export default function Login() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/home2?justLoggedIn=true`,
+        emailRedirectTo: `${window.location.origin}/login-redirect`,
       },
     });
 
@@ -75,7 +80,7 @@ export default function Login() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/home2?justLoggedIn=true`,
+          redirectTo: `${window.location.origin}/login-redirect`,
         },
       });
       if (error) setError(error.message);

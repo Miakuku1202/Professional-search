@@ -5,6 +5,7 @@ interface Profile {
   first_name: string;
   last_name: string;
   email: string;
+  user_type?: "professional" | "business"; // Add user_type field
 }
 
 interface UserContextType {

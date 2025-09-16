@@ -6,14 +6,12 @@ import { Eye, Download } from "lucide-react";
 import { jsPDF } from "jspdf";
 import { toPng } from "html-to-image";
 
-interface UserProfile {
-  name: string;
-  profession: string;
+interface BusinessProfileData {
+  id: string;
+  business_name: string;
+  industry: string;
   logo_url: string;
-  experience: number;
-  languages: string;
-  skills: string;
-  address: string;
+  website: string;
   summary: string;
   mobile: string;
   whatsapp: string;
@@ -24,12 +22,12 @@ interface UserProfile {
   youtube: string;
   twitter: string;
   github: string;
-  website: string;
   google_my_business: string;
+  created_at: string;
 }
 
-export default function ProfilePage() {
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+export default function BusinessProfilePage() {
+  const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
@@ -39,7 +37,7 @@ export default function ProfilePage() {
   useEffect(() => {
     let isMounted = true;
 
-    const fetchProfile = async () => {
+    const fetchBusinessProfile = async () => {
       try {
         const {
           data: { user },
@@ -56,16 +54,16 @@ export default function ProfilePage() {
           return;
         }
 
-        const { data: userProfileData, error: userProfileError } = await supabase
-          .from("user_profiles")
+        const { data: businessProfileData, error: businessProfileError } = await supabase
+          .from("businesses")
           .select("*")
-          .eq("user_id", user.id)
+          .eq("id", user.id)
           .single();
 
-        if (userProfileError) {
-          if (isMounted) setError("Error fetching profile: " + userProfileError.message);
+        if (businessProfileError) {
+          if (isMounted) setError("Error fetching business profile: " + businessProfileError.message);
         } else {
-          if (isMounted) setUserProfile(userProfileData as UserProfile);
+          if (isMounted) setBusinessProfile(businessProfileData as BusinessProfileData);
         }
       } catch (err) {
         if (isMounted) setError("Unexpected error occurred");
@@ -74,17 +72,17 @@ export default function ProfilePage() {
       }
     };
 
-    fetchProfile();
+    fetchBusinessProfile();
 
     return () => {
       isMounted = false;
     };
   }, [navigate]);
 
-  const handleViewCard = () => navigate("/profile-card");
+  const handleViewCard = () => navigate("/business-profile-card");
 
   const handleDownloadPdf = async () => {
-    if (!cardRef.current || !userProfile) return;
+    if (!cardRef.current || !businessProfile) return;
 
     setDownloading(true);
 
@@ -102,7 +100,7 @@ export default function ProfilePage() {
       const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
 
       pdf.addImage(dataUrl, "PNG", 0, 0, imgWidth, imgHeight);
-      pdf.save(`${userProfile.name}-profile.pdf`);
+      pdf.save(`${businessProfile.business_name}-profile.pdf`);
     } catch (error) {
       console.error("Download failed:", error);
       alert("Download failed. Please try again.");
@@ -114,7 +112,7 @@ export default function ProfilePage() {
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-center text-lg">Loading profile...</p>
+        <p className="text-center text-lg">Loading business profile...</p>
       </div>
     );
 
@@ -125,10 +123,10 @@ export default function ProfilePage() {
       </div>
     );
 
-  if (!userProfile)
+  if (!businessProfile)
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-center text-lg">No profile found</p>
+        <p className="text-center text-lg">No business profile found</p>
       </div>
     );
 
@@ -140,29 +138,33 @@ export default function ProfilePage() {
         {/* Header with Action Buttons */}
         <div className="bg-white shadow-md rounded-2xl p-4 md:p-6">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            {/* Profile Info */}
+            {/* Business Profile Info */}
             <div className="flex items-center gap-4 md:gap-6">
-              {userProfile.logo_url ? (
+              {businessProfile.logo_url ? (
                 <img
-                  src={userProfile.logo_url}
-                  alt="Profile"
+                  src={businessProfile.logo_url}
+                  alt="Business Logo"
                   className="w-20 h-20 rounded-full object-cover"
                 />
               ) : (
                 <div className="w-20 h-20 bg-gray-300 rounded-full flex items-center justify-center">
                   <span className="text-gray-500 text-2xl">
-                    {userProfile.name?.charAt(0)?.toUpperCase() || "?"}
+                    {businessProfile.business_name?.charAt(0)?.toUpperCase() || "?"}
                   </span>
                 </div>
               )}
               <div>
                 <h1 className="text-xl md:text-2xl font-bold">
-                  {userProfile.name}
+                  {businessProfile.business_name}
                 </h1>
-                <p className="text-gray-600">{userProfile.profession}</p>
-                <p className="text-sm text-gray-500">
-                  {userProfile.experience} years experience
-                </p>
+                <p className="text-gray-600">{businessProfile.industry}</p>
+                {businessProfile.website && (
+                  <p className="text-sm text-blue-500 hover:underline">
+                    <a href={businessProfile.website} target="_blank" rel="noopener noreferrer">
+                      {businessProfile.website}
+                    </a>
+                  </p>
+                )}
               </div>
             </div>
 
@@ -173,7 +175,7 @@ export default function ProfilePage() {
                 className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
               >
                 <Eye size={16} />
-                View
+                View Card
               </button>
               <button
                 onClick={handleDownloadPdf}
@@ -193,50 +195,21 @@ export default function ProfilePage() {
             Contact Information
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {userProfile.mobile && <p>📞 {userProfile.mobile}</p>}
-            {userProfile.whatsapp && <p>💬 {userProfile.whatsapp}</p>}
-            {userProfile.email && <p>📧 {userProfile.email}</p>}
-            {userProfile.address && <p>📍 {userProfile.address}</p>}
-            {userProfile.website && <p>🌐 {userProfile.website}</p>}
+            {businessProfile.mobile && <p>📞 {businessProfile.mobile}</p>}
+            {businessProfile.whatsapp && <p>💬 {businessProfile.whatsapp}</p>}
+            {businessProfile.email && <p>📧 {businessProfile.email}</p>}
+            {/* Address is not in business profile table based on provided schema. Remove if not applicable. */}
+            {businessProfile.website && <p>🌐 <a href={businessProfile.website} target="_blank" rel="noopener noreferrer">{businessProfile.website}</a></p>}
           </div>
         </div>
 
-        {/* About Me */}
-        {userProfile.summary && (
+        {/* About Business */}
+        {businessProfile.summary && (
           <div className="bg-white shadow-md rounded-2xl p-4 md:p-6">
-            <h2 className="text-lg md:text-xl font-semibold mb-4">About Me</h2>
+            <h2 className="text-lg md:text-xl font-semibold mb-4">About Business</h2>
             <p className="text-gray-700 leading-relaxed">
-              {userProfile.summary}
+              {businessProfile.summary}
             </p>
-          </div>
-        )}
-
-        {/* Skills */}
-        {userProfile.skills && (
-          <div className="bg-white shadow-md rounded-2xl p-4 md:p-6">
-            <h2 className="text-lg md:text-xl font-semibold mb-4">
-              Core Skills
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {userProfile.skills.split(",").map((skill, index) => (
-                <span
-                  key={index}
-                  className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs md:text-sm"
-                >
-                  {skill.trim()}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Languages */}
-        {userProfile.languages && (
-          <div className="bg-white shadow-md rounded-2xl p-4 md:p-6">
-            <h2 className="text-lg md:text-xl font-semibold mb-4">
-              Languages
-            </h2>
-            <p className="text-gray-700">{userProfile.languages}</p>
           </div>
         )}
 
@@ -246,9 +219,9 @@ export default function ProfilePage() {
             Social Media & Links
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {userProfile.linkedin && (
+            {businessProfile.linkedin && (
               <a
-                href={userProfile.linkedin}
+                href={businessProfile.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:underline"
@@ -256,9 +229,9 @@ export default function ProfilePage() {
                 🔗 LinkedIn
               </a>
             )}
-            {userProfile.instagram && (
+            {businessProfile.instagram && (
               <a
-                href={userProfile.instagram}
+                href={businessProfile.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-pink-600 hover:underline"
@@ -266,9 +239,9 @@ export default function ProfilePage() {
                 📸 Instagram
               </a>
             )}
-            {userProfile.facebook && (
+            {businessProfile.facebook && (
               <a
-                href={userProfile.facebook}
+                href={businessProfile.facebook}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-800 hover:underline"
@@ -276,9 +249,9 @@ export default function ProfilePage() {
                 📘 Facebook
               </a>
             )}
-            {userProfile.youtube && (
+            {businessProfile.youtube && (
               <a
-                href={userProfile.youtube}
+                href={businessProfile.youtube}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-red-600 hover:underline"
@@ -286,9 +259,9 @@ export default function ProfilePage() {
                 ▶️ YouTube
               </a>
             )}
-            {userProfile.twitter && (
+            {businessProfile.twitter && (
               <a
-                href={userProfile.twitter}
+                href={businessProfile.twitter}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-400 hover:underline"
@@ -296,9 +269,9 @@ export default function ProfilePage() {
                 🐦 Twitter
               </a>
             )}
-            {userProfile.github && (
+            {businessProfile.github && (
               <a
-                href={userProfile.github}
+                href={businessProfile.github}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-800 hover:underline"
@@ -306,9 +279,9 @@ export default function ProfilePage() {
                 💻 GitHub
               </a>
             )}
-            {userProfile.google_my_business && (
+            {businessProfile.google_my_business && (
               <a
-                href={userProfile.google_my_business}
+                href={businessProfile.google_my_business}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-green-600 hover:underline"

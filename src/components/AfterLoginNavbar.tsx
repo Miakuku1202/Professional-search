@@ -10,15 +10,26 @@ import {
 } from "react-icons/fa";
 import { MdPostAdd } from "react-icons/md";
 import { IoMdNotificationsOutline } from "react-icons/io";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "../context/UserContext";
 import { supabase } from "../lib/supabaseClient";
 
 export default function AfterLoginNavbar() {
-  const { profile } = useUser();
+  const { profile, setProfile } = useUser();
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchUserType = async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (user && !error) {
+        // Assuming user_type is stored in user_metadata during registration
+        setProfile({ ...profile, user_type: user.user_metadata?.user_type });
+      }
+    };
+    fetchUserType();
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -110,7 +121,7 @@ export default function AfterLoginNavbar() {
                 <ul className="py-1">
                   <li>
                     <button
-                      onClick={() => handleNav("/profile")}
+                      onClick={() => handleNav(profile?.user_type === "business" ? "/business-profile" : "/profile")}
                       className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                     >
                       Profile
@@ -190,7 +201,7 @@ export default function AfterLoginNavbar() {
               {profile?.email || "user@example.com"}
             </p>
             <button
-              onClick={() => handleNav("/profile")}
+              onClick={() => handleNav(profile?.user_type === "business" ? "/business-profile" : "/profile")}
               className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
             >
               Profile
