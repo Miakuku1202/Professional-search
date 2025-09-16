@@ -2,9 +2,9 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 
 interface Profile {
-  first_name: string;
-  last_name: string;
-  email: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
   user_type?: "professional" | "business"; // Add user_type field
 }
 

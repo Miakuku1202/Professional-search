@@ -8,7 +8,6 @@ import {
   Share2,
   Phone,
   Mail,
-  MapPin,
   Globe,
   Linkedin,
   MoreVertical,
