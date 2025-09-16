@@ -142,59 +142,46 @@ export default function ProfileCard() {
 
   // ✅ Fixed share function
   const handleShare = async () => {
-    const profileUrl = `${window.location.origin}/profile-card`;
+    const profileUrl = `${window.location.origin}/public-profile/${userProfile?.name}`;
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `${userProfile?.name}'s Professional Profile`,
-          text: `Check out ${userProfile?.name}'s profile - ${userProfile?.profession}`,
+          title: `${userProfile?.name}'s Profile`,
+          text: `Check out ${userProfile?.name}'s professional profile`,
           url: profileUrl,
         });
-        return;
       } catch (error) {
-        console.log("Share failed, using fallback:", error);
+        console.log('Share failed:', error);
       }
-    }
-
-    const shareText = `🔗 ${userProfile?.name}'s Profile\n\n${userProfile?.profession}\n\nView profile: ${profileUrl}`;
-
-    try {
-      await navigator.clipboard.writeText(shareText);
-      alert("✅ Profile details copied to clipboard!");
-    } catch (error) {
-      const textArea = document.createElement("textarea");
-      textArea.value = shareText;
-      textArea.style.position = "fixed";
-      textArea.style.opacity = "0";
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textArea);
-      alert("✅ Profile details copied to clipboard!");
+    } else {
+      // Fallback to copy to clipboard
+      try {
+        await navigator.clipboard.writeText(profileUrl);
+        alert('Profile link copied to clipboard!');
+      } catch (error) {
+        console.error('Failed to copy link:', error);
+      }
     }
   };
 
-  if (loading)
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-center text-lg">Loading profile card...</p>
-      </div>
-    );
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-center text-lg">Loading profile card...</p>
+    </div>
+  );
 
-  if (error)
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-center text-red-500 text-lg">{error}</p>
-      </div>
-    );
+  if (error) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-center text-red-500 text-lg">{error}</p>
+    </div>
+  );
 
-  if (!userProfile)
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-center text-lg">No profile found</p>
-      </div>
-    );
+  if (!userProfile) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-center text-lg">No profile found</p>
+    </div>
+  );
 
   return (
     <>
