@@ -10,7 +10,7 @@ import {
 } from "react-icons/fa";
 import { MdPostAdd } from "react-icons/md";
 import { IoMdNotificationsOutline } from "react-icons/io";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useUser } from "../context/UserContext";
 import { supabase } from "../lib/supabaseClient";
 
