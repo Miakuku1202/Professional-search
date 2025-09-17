@@ -5,6 +5,7 @@ import AfterLoginNavbar from "../components/AfterLoginNavbar";
 import { Eye, Download } from "lucide-react";
 import { jsPDF } from "jspdf";
 import { toPng } from "html-to-image";
+import { useUser } from "../context/UserContext"; // Import useUser
 
 interface BusinessProfileData {
   id: string;
@@ -27,7 +28,10 @@ interface BusinessProfileData {
 }
 
 export default function BusinessProfilePage() {
+  // Consume profile from global UserContext
+  const { profile } = useUser();
   const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
+  // Set loading initially based on whether profile is already in context
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
@@ -35,49 +39,55 @@ export default function BusinessProfilePage() {
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let isMounted = true;
+    console.log("BusinessProfilePage: useEffect triggered.");
+    console.log("BusinessProfilePage: Profile from context:", profile);
 
-    const fetchBusinessProfile = async () => {
-      try {
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
+    // If profile is already in context, set loading to false and populate businessProfile
+    if (profile) {
+      if (profile.user_type === "business") {
+        console.log("BusinessProfilePage: User is business type. Fetching detailed profile...");
+        // Fetch detailed business profile from 'businesses' table
+        const fetchBusinessProfileData = async () => {
+          try {
+            console.log("BusinessProfilePage: Fetching business profile for ID:", profile.id);
+            const { data: businessProfileData, error: businessProfileError } = await supabase
+              .from("businesses")
+              .select("*")
+              .eq("id", profile.id) // Use profile.id from context
+              .single();
 
-        if (userError) {
-          if (isMounted) setError("Failed to get user");
-          return;
-        }
+            console.log("BusinessProfilePage: Supabase response:", { data: businessProfileData, error: businessProfileError });
 
-        if (!user) {
-          if (isMounted) navigate("/login");
-          return;
-        }
-
-        const { data: businessProfileData, error: businessProfileError } = await supabase
-          .from("businesses")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-
-        if (businessProfileError) {
-          if (isMounted) setError("Error fetching business profile: " + businessProfileError.message);
-        } else {
-          if (isMounted) setBusinessProfile(businessProfileData as BusinessProfileData);
-        }
-      } catch (err) {
-        if (isMounted) setError("Unexpected error occurred");
-      } finally {
-        if (isMounted) setLoading(false);
+            if (businessProfileError) {
+              setError("Error fetching business profile: " + businessProfileError.message);
+              console.error("BusinessProfilePage: Error fetching business profile:", businessProfileError);
+            } else {
+              setBusinessProfile(businessProfileData as BusinessProfileData);
+              console.log("BusinessProfilePage: Business profile data set successfully.");
+            }
+          } catch (err) {
+            setError("Unexpected error occurred while fetching business profile");
+            console.error("BusinessProfilePage: Unexpected error during fetch:", err);
+          } finally {
+            setLoading(false);
+            console.log("BusinessProfilePage: Loading set to false in finally block.");
+          }
+        };
+        fetchBusinessProfileData();
+      } else if (profile.user_type === "professional") {
+        console.log("BusinessProfilePage: User is professional type. Redirecting to /profile.");
+        navigate("/profile");
+      } else {
+        console.warn("BusinessProfilePage: Invalid or missing user type in profile.", profile.user_type);
+        setError("Invalid or missing user type.");
+        setLoading(false);
       }
-    };
-
-    fetchBusinessProfile();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [navigate]);
+    } else {
+      console.warn("BusinessProfilePage: Profile not found in context. Redirecting to /login.");
+      setLoading(false); // If profile is null, assume not authenticated for this page's purpose
+      navigate("/login");
+    }
+  }, [profile, navigate]); // Rerun when profile in context changes or navigate function changes
 
   const handleViewCard = () => navigate("/business-profile-card");
 

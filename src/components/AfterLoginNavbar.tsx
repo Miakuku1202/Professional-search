@@ -20,19 +20,20 @@ export default function AfterLoginNavbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchUserType = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (user && !error) {
-        // Assuming user_type is stored in user_metadata during registration
-        setProfile({ ...profile, user_type: user.user_metadata?.user_type });
-      }
-    };
-    fetchUserType();
-  }, []);
+  // Remove redundant useEffect as profile is now set by Login/LoginRedirect
+  // useEffect(() => {
+  //   const fetchUserType = async () => {
+  //     const { data: { user }, error } = await supabase.auth.getUser();
+  //     if (user && !error) {
+  //       setProfile({ ...profile, user_type: user.user_metadata?.user_type });
+  //     }
+  //   };
+  //   fetchUserType();
+  // }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setProfile(null); // Clear user profile from context
     navigate("/");
   };
 

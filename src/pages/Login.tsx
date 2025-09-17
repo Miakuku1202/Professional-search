@@ -3,7 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import AuthNavbar from "../components/AuthNavbar";
 import { supabase } from "../lib/supabaseClient";
 import { FaGoogle, FaEnvelope } from "react-icons/fa";
-import LoginIllustration from "../assets/login-illustration.svg"; 
+import LoginIllustration from "../assets/login-illustration.svg";
+import { useUser } from "../context/UserContext"; // Import useUser
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -11,6 +13,7 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { setProfile } = useUser(); // Destructure setProfile here
 
   // Email + Password login
   const handleLogin = async (e: React.FormEvent) => {
@@ -35,8 +38,17 @@ export default function Login() {
     } else if (data?.user && data?.session) {   // ✅ add this check
       console.log("✅ Login success", data);
 
-      const userType = data.user.user_metadata?.user_type;
+      const userType = data.user.user_metadata?.user_type || "professional"; // Add fallback to 'professional'
       console.log("User type after login:", userType);
+
+      // Set the user profile in context
+      setProfile({
+        id: data.user.id, // Include the user ID
+        first_name: data.user.user_metadata?.first_name,
+        last_name: data.user.user_metadata?.last_name,
+        email: data.user.email,
+        user_type: userType,
+      });
 
       // Revert to /home2 redirection as requested
       navigate("/home2?justLoggedIn=true");
@@ -135,6 +147,8 @@ export default function Login() {
             <form onSubmit={handleLogin}>
               <input
                 type="email"
+                id="email"
+                name="email" // Add name attribute
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -143,6 +157,8 @@ export default function Login() {
               />
               <input
                 type="password"
+                id="password"
+                name="password" // Add name attribute
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

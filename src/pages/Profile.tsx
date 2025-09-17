@@ -5,6 +5,7 @@ import AfterLoginNavbar from "../components/AfterLoginNavbar";
 import { Eye, Download } from "lucide-react";
 import { jsPDF } from "jspdf";
 import { toPng } from "html-to-image";
+import { useUser } from "../context/UserContext"; // Import useUser
 
 interface UserProfile {
   name: string;
@@ -29,7 +30,10 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
+  // Consume profile from global UserContext
+  const { profile } = useUser();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  // Set loading initially based on whether profile is already in context
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
@@ -37,49 +41,47 @@ export default function ProfilePage() {
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let isMounted = true;
+    // If profile is already in context, set loading to false and populate userProfile
+    if (profile) {
+      if (profile.user_type === "professional") {
+        // Fetch detailed professional profile from 'user_profiles' table
+        const fetchProfessionalProfile = async () => {
+          try {
+            const { data: userProfileData, error: userProfileError } = await supabase
+              .from("user_profiles")
+              .select("*")
+              .eq("user_id", profile.id) // Use profile.id from context
+              .single();
 
-    const fetchProfile = async () => {
-      try {
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError) {
-          if (isMounted) setError("Failed to get user");
-          return;
-        }
-
-        if (!user) {
-          if (isMounted) navigate("/login");
-          return;
-        }
-
-        const { data: userProfileData, error: userProfileError } = await supabase
-          .from("user_profiles")
-          .select("*")
-          .eq("user_id", user.id)
-          .single();
-
-        if (userProfileError) {
-          if (isMounted) setError("Error fetching profile: " + userProfileError.message);
-        } else {
-          if (isMounted) setUserProfile(userProfileData as UserProfile);
-        }
-      } catch (err) {
-        if (isMounted) setError("Unexpected error occurred");
-      } finally {
-        if (isMounted) setLoading(false);
+            if (userProfileError) {
+              setError("Error fetching professional profile: " + userProfileError.message);
+            } else {
+              setUserProfile(userProfileData as UserProfile);
+            }
+          } catch (err) {
+            setError("Unexpected error occurred while fetching professional profile");
+          } finally {
+            setLoading(false);
+          }
+        };
+        fetchProfessionalProfile();
+      } else if (profile.user_type === "business") {
+        // Redirect businessmen to their specific profile page
+        navigate("/business-profile");
+      } else {
+        // Fallback for unexpected user types or if user_type is missing
+        setError("Invalid or missing user type.");
+        setLoading(false);
       }
-    };
-
-    fetchProfile();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [navigate]);
+    } else {
+      // If profile is not in context, it means user is not logged in or context is not yet loaded
+      // Redirect to login or keep loading if Auth state is still resolving.
+      // For now, let's assume if profile is null here, a redirect to login is appropriate after initial load.
+      // A more robust solution might involve a `ProtectedRoute` or checking `supabase.auth.getSession()` here too.
+      setLoading(false); // If profile is null, assume not authenticated for this page's purpose
+      navigate("/login");
+    }
+  }, [profile, navigate]); // Rerun when profile in context changes or navigate function changes
 
   const handleViewCard = () => navigate("/profile-card");
 

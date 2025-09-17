@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
+import { useUser } from "../context/UserContext"; // Import useUser
 
 interface BusinessProfileData {
   id: string;
@@ -36,7 +37,10 @@ interface BusinessProfileData {
 }
 
 export default function BusinessProfileCard() {
+  // Consume profile from global UserContext
+  const { profile } = useUser();
   const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
+  // Set loading initially based on whether profile is already in context
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingPng, setDownloadingPng] = useState(false);
@@ -46,43 +50,44 @@ export default function BusinessProfileCard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchBusinessProfile = async () => {
-      try {
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
+    // If profile is already in context, set loading to false and populate businessProfile
+    if (profile) {
+      if (profile.user_type === "business") {
+        // Fetch detailed business profile from 'businesses' table
+        const fetchBusinessProfileData = async () => {
+          try {
+            const { data: businessProfileData, error: businessProfileError } = await supabase
+              .from("businesses")
+              .select("*")
+              .eq("id", profile.id) // Use profile.id from context
+              .single();
 
-        if (userError) {
-          setError("Failed to get user");
-          return;
-        }
-        if (!user) {
-          navigate("/login");
-          return;
-        }
-
-        const { data: businessProfileData, error: businessProfileError } =
-          await supabase
-            .from("businesses")
-            .select("*")
-            .eq("id", user.id)
-            .single();
-
-        if (businessProfileError) {
-          setError("Error fetching business profile: " + businessProfileError.message);
-        } else {
-          setBusinessProfile(businessProfileData as BusinessProfileData);
-        }
-      } catch {
-        setError("Unexpected error occurred");
-      } finally {
+            if (businessProfileError) {
+              setError("Error fetching business profile: " + businessProfileError.message);
+            } else {
+              setBusinessProfile(businessProfileData as BusinessProfileData);
+            }
+          } catch (err) {
+            setError("Unexpected error occurred while fetching business profile");
+          } finally {
+            setLoading(false);
+          }
+        };
+        fetchBusinessProfileData();
+      } else if (profile.user_type === "professional") {
+        // If a professional tries to access business card, redirect to their profile card
+        navigate("/profile-card");
+      } else {
+        // Fallback for unexpected user types or if user_type is missing
+        setError("Invalid or missing user type.");
         setLoading(false);
       }
-    };
-
-    fetchBusinessProfile();
-  }, [navigate]);
+    } else {
+      // If profile is not in context, it means user is not logged in or context is not yet loaded
+      setLoading(false); // If profile is null, assume not authenticated for this page's purpose
+      navigate("/login");
+    }
+  }, [profile, navigate]); // Rerun when profile in context changes or navigate function changes
 
   const handleDownload = async (format: "pdf" | "png") => {
     if (!cardRef.current || !businessProfile) return;
