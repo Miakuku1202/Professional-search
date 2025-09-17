@@ -48,7 +48,7 @@ export default function Register() {
         password,
         options: {
           data: userData, // Store user type and relevant name in metadata
-          emailRedirectTo: `${window.location.origin}/create-profile`,
+          emailRedirectTo: `${window.location.origin}/${userType === "business" ? "create-business-profile" : "create-profile"}`,
         },
       });
 
@@ -88,7 +88,7 @@ export default function Register() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/create-profile`,
+          redirectTo: `${window.location.origin}/login-redirect`,
           queryParams: {
             prompt: "select_account",
           },
@@ -121,9 +121,10 @@ export default function Register() {
         options: {
           data: { 
             first_name: firstName, 
-            last_name: lastName 
+            last_name: lastName,
+            user_type: userType
           },
-          emailRedirectTo: `${window.location.origin}/create-profile`,
+          emailRedirectTo: `${window.location.origin}/${userType === "business" ? "create-business-profile" : "create-profile"}`,
         },
       });
 
