@@ -10,7 +10,7 @@ import {
 } from "react-icons/fa";
 import { MdPostAdd } from "react-icons/md";
 import { IoMdNotificationsOutline } from "react-icons/io";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useUser } from "../context/UserContext";
 import { supabase } from "../lib/supabaseClient";
 
@@ -18,18 +18,45 @@ export default function AfterLoginNavbar() {
   const { profile, setProfile } = useUser();
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [authUserType, setAuthUserType] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Remove redundant useEffect as profile is now set by Login/LoginRedirect
-  // useEffect(() => {
-  //   const fetchUserType = async () => {
-  //     const { data: { user }, error } = await supabase.auth.getUser();
-  //     if (user && !error) {
-  //       setProfile({ ...profile, user_type: user.user_metadata?.user_type });
-  //     }
-  //   };
-  //   fetchUserType();
-  // }, []);
+  // Fetch user_type from database tables instead of auth metadata
+  useEffect(() => {
+    const fetchUserType = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      // Try to get user_type from user_profiles first
+      const { data: profileData } = await supabase
+        .from("user_profiles")
+        .select("user_type")
+        .eq("user_id", user.id)
+        .single();
+      
+      if (profileData?.user_type) {
+        setAuthUserType(profileData.user_type);
+        return;
+      }
+      
+      // If not found in user_profiles, try businesses table
+      const { data: businessData } = await supabase
+        .from("businesses")
+        .select("user_type")
+        .eq("user_id", user.id) // ✅ Use user_id
+        .single();
+      
+      if (businessData?.user_type) {
+        setAuthUserType(businessData.user_type);
+      }
+    };
+    
+    if (!profile?.user_type) {
+      fetchUserType();
+    }
+  }, [profile?.user_type]);
+
+  const effectiveUserType = profile?.user_type ?? authUserType;
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -65,20 +92,24 @@ export default function AfterLoginNavbar() {
           <FaHome className="text-xl mb-1" />
           Home
         </button>
-        <button
-          onClick={() => handleNav("/find-job")}
-          className="flex flex-col items-center text-xs hover:text-green-600 p-2 rounded-lg hover:bg-green-50"
-        >
-          <FaBriefcase className="text-xl mb-1" />
-          Jobs
-        </button>
-        <button
-          onClick={() => handleNav("/post-job")}
-          className="flex flex-col items-center text-xs hover:text-purple-600 p-2 rounded-lg hover:bg-purple-50"
-        >
-          <MdPostAdd className="text-xl mb-1" />
-          Post
-        </button>
+        {effectiveUserType !== "business" && (
+          <button
+            onClick={() => handleNav("/find-job")}
+            className="flex flex-col items-center text-xs hover:text-green-600 p-2 rounded-lg hover:bg-green-50"
+          >
+            <FaBriefcase className="text-xl mb-1" />
+            Jobs
+          </button>
+        )}
+        {effectiveUserType === "business" && (
+          <button
+            onClick={() => handleNav("/post-job")}
+            className="flex flex-col items-center text-xs hover:text-purple-600 p-2 rounded-lg hover:bg-purple-50"
+          >
+            <MdPostAdd className="text-xl mb-1" />
+            Post
+          </button>
+        )}
         <button
           onClick={() => handleNav("/help")}
           className="flex flex-col items-center text-xs hover:text-orange-600 p-2 rounded-lg hover:bg-orange-50"
@@ -168,18 +199,22 @@ export default function AfterLoginNavbar() {
           >
             <FaHome /> Home
           </button>
-          <button
-            onClick={() => handleNav("/find-job")}
-            className="w-full flex items-center gap-2 py-2 px-3 hover:bg-green-50 rounded-md"
-          >
-            <FaBriefcase /> Jobs
-          </button>
-          <button
-            onClick={() => handleNav("/post-job")}
-            className="w-full flex items-center gap-2 py-2 px-3 hover:bg-purple-50 rounded-md"
-          >
-            <MdPostAdd /> Post
-          </button>
+          {effectiveUserType !== "business" && (
+            <button
+              onClick={() => handleNav("/find-job")}
+              className="w-full flex items-center gap-2 py-2 px-3 hover:bg-green-50 rounded-md"
+            >
+              <FaBriefcase /> Jobs
+            </button>
+          )}
+          {effectiveUserType === "business" && (
+            <button
+              onClick={() => handleNav("/post-job")}
+              className="w-full flex items-center gap-2 py-2 px-3 hover:bg-purple-50 rounded-md"
+            >
+              <MdPostAdd /> Post
+            </button>
+          )}
           <button
             onClick={() => handleNav("/help")}
             className="w-full flex items-center gap-2 py-2 px-3 hover:bg-orange-50 rounded-md"

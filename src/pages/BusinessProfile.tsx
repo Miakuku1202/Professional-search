@@ -25,13 +25,13 @@ interface BusinessProfileData {
   github: string;
   google_my_business: string;
   created_at: string;
+  user_id: string;
+  user_type: string;
 }
 
 export default function BusinessProfilePage() {
-  // Consume profile from global UserContext
-  const { profile } = useUser();
+  const { profile, setProfile } = useUser(); // ✅ ADDED setProfile
   const [businessProfile, setBusinessProfile] = useState<BusinessProfileData | null>(null);
-  // Set loading initially based on whether profile is already in context
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
@@ -42,19 +42,18 @@ export default function BusinessProfilePage() {
     console.log("BusinessProfilePage: useEffect triggered.");
     console.log("BusinessProfilePage: Profile from context:", profile);
 
-    // If profile is already in context, set loading to false and populate businessProfile
     if (profile) {
       if (profile.user_type === "business") {
         console.log("BusinessProfilePage: User is business type. Fetching detailed profile...");
-        // Fetch detailed business profile from 'businesses' table
         const fetchBusinessProfileData = async () => {
           try {
             console.log("BusinessProfilePage: Fetching business profile for ID:", profile.id);
             const { data: businessProfileData, error: businessProfileError } = await supabase
               .from("businesses")
               .select("*")
-              .eq("id", profile.id) // Use profile.id from context
-              .single();
+              .eq("user_id", profile.id) // ✅ FIXED: Use user_id instead of id
+              .order('created_at', { ascending: false })
+              .limit(1);
 
             console.log("BusinessProfilePage: Supabase response:", { data: businessProfileData, error: businessProfileError });
 
@@ -62,7 +61,7 @@ export default function BusinessProfilePage() {
               setError("Error fetching business profile: " + businessProfileError.message);
               console.error("BusinessProfilePage: Error fetching business profile:", businessProfileError);
             } else {
-              setBusinessProfile(businessProfileData as BusinessProfileData);
+              setBusinessProfile(businessProfileData?.[0] as BusinessProfileData || null); // ✅ FIXED: Array access
               console.log("BusinessProfilePage: Business profile data set successfully.");
             }
           } catch (err) {
@@ -84,10 +83,10 @@ export default function BusinessProfilePage() {
       }
     } else {
       console.warn("BusinessProfilePage: Profile not found in context. Redirecting to /login.");
-      setLoading(false); // If profile is null, assume not authenticated for this page's purpose
+      setLoading(false);
       navigate("/login");
     }
-  }, [profile, navigate]); // Rerun when profile in context changes or navigate function changes
+  }, [profile, navigate, setProfile]); // ✅ ADDED setProfile to dependencies
 
   const handleViewCard = () => navigate("/business-profile-card");
 
@@ -208,7 +207,6 @@ export default function BusinessProfilePage() {
             {businessProfile.mobile && <p>📞 {businessProfile.mobile}</p>}
             {businessProfile.whatsapp && <p>💬 {businessProfile.whatsapp}</p>}
             {businessProfile.email && <p>📧 {businessProfile.email}</p>}
-            {/* Address is not in business profile table based on provided schema. Remove if not applicable. */}
             {businessProfile.website && <p>🌐 <a href={businessProfile.website} target="_blank" rel="noopener noreferrer">{businessProfile.website}</a></p>}
           </div>
         </div>

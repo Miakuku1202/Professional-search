@@ -38,16 +38,47 @@ export default function Login() {
     } else if (data?.user && data?.session) {   // ✅ add this check
       console.log("✅ Login success", data);
 
-      const userType = data.user.user_metadata?.user_type || "professional"; // Add fallback to 'professional'
-      console.log("User type after login:", userType);
+      // ✅ FIXED: Fetch user_type from database tables with proper typing
+      let userType: "professional" | "business" | undefined = "professional"; // default fallback
+      
+      // Try to get user_type from user_profiles first
+      const { data: profileData } = await supabase
+        .from("user_profiles")
+        .select("user_type, name")
+        .eq("user_id", data.user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (profileData?.[0]?.user_type) {
+        // ✅ Type assertion to ensure correct type
+        userType = profileData[0].user_type as "professional" | "business";
+        console.log("Login: User type from user_profiles:", userType);
+      } else {
+        // If not found in user_profiles, try businesses table
+        // ✅ CORRECT:
+        const { data: businessData } = await supabase
+          .from("businesses")
+          .select("user_type, business_name")
+          .eq("user_id", data.user.id) // ✅ Use user_id
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        
+        if (businessData?.[0]?.user_type) {
+          // ✅ Type assertion to ensure correct type
+          userType = businessData[0].user_type as "professional" | "business";
+          console.log("Login: User type from businesses:", userType);
+        }
+      }
 
       // Set the user profile in context
       setProfile({
         id: data.user.id, // Include the user ID
-        first_name: data.user.user_metadata?.first_name,
-        last_name: data.user.user_metadata?.last_name,
+        first_name: data.user.user_metadata?.first_name || profileData?.[0]?.name?.split(' ')[0],
+        last_name: data.user.user_metadata?.last_name || profileData?.[0]?.name?.split(' ').slice(1).join(' '),
+        business_name: data.user.user_metadata?.business_name,
         email: data.user.email,
-        user_type: userType,
+        user_type: userType, // ✅ Now properly typed
       });
 
       // Revert to /home2 redirection as requested
@@ -57,7 +88,6 @@ export default function Login() {
       console.warn("⚠️ Login response missing session:", data);
     }
   };
-
 
   // Magic Link login
   const handleMagicLink = async () => {
