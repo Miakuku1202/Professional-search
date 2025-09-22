@@ -3,7 +3,10 @@ import MainLayout from "../layouts/MainLayout";
 import Home from "../pages/Home";
 import Home2 from "../pages/Home2";
 import Login from "../pages/Login";
-import Register from "../pages/Register";
+// ✅ UPDATED: Import new registration components
+import UserTypeSelection from "../pages/UserTypeSelection";
+import RegisterProfessional from "../pages/RegisterProfessional";
+import RegisterBusiness from "../pages/RegisterBusiness";
 import ResetPassword from "../pages/ResetPassword";
 import CreateProfile from "../pages/create-profile";
 // Extra pages
@@ -22,6 +25,15 @@ import CreateBusinessProfile from "../pages/CreateBusinessProfile";
 import BusinessProfilePage from "../pages/BusinessProfile";
 import LoginRedirect from "../pages/LoginRedirect";
 import BusinessProfileCard from "../pages/BusinessProfileCard";
+// Edit Profile Pages
+import EditProfile from "../pages/EditProfile";
+import EditBusinessProfile from "../pages/EditBusinessProfile";
+
+import JobDetails from "../pages/JobDetails";
+import ApplyNow from "../pages/ApplyNow";
+import MyAppliedJobs from "../pages/MyAppliedJobs"; // Import the new component
+import MyJobPosts from "../pages/MyJobPosts";
+import JobApplicants from "../pages/JobApplicants"; // Import the new component
 
 export default function AppRoutes() {
   return (
@@ -31,7 +43,12 @@ export default function AppRoutes() {
           {/* Authentication & Base Routes */}
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          
+          {/* ✅ NEW: Updated Registration Routes */}
+          <Route path="/register" element={<UserTypeSelection />} />
+          <Route path="/register/professional" element={<RegisterProfessional />} />
+          <Route path="/register/business" element={<RegisterBusiness />} />
+          
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/home2" element={<Home2 />} />
           <Route path="/login-redirect" element={<LoginRedirect />} />
@@ -40,8 +57,15 @@ export default function AppRoutes() {
           <Route path="/post-job" element={<PostJobPage />} />
           <Route path="/find-job" element={<FindJobPage />} />
           <Route path="/browse-job" element={<BrowseJob />} /> 
+          <Route path="/my-applied-jobs" element={<MyAppliedJobs />} /> {/* New Route for Applied Jobs */}
+          <Route path="/my-job-posts" element={<MyJobPosts />} />
+          <Route path="/my-job-posts/:jobId/applicants" element={<JobApplicants />} /> {/* New Route for Job Applicants */}
           <Route path="/help" element={<Help />} />
           <Route path="/how-to/:topic" element={<HowTo />} />
+
+          {/* ✅ ADDED: New Job Routes */}
+          <Route path="/job-details/:id" element={<JobDetails />} />
+          <Route path="/apply-now" element={<ApplyNow />} />
 
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/job-posted" element={<JobPosted />} />
@@ -54,6 +78,10 @@ export default function AppRoutes() {
           <Route path="/profile-card" element={<ProfileCard />} />
           <Route path="/business-profile-card" element={<BusinessProfileCard />} />
           <Route path="/public-profile/:name" element={<PublicProfile />} />
+          
+          {/* Edit Profile Routes */}
+          <Route path="/edit-profile" element={<EditProfile />} />
+          <Route path="/edit-business-profile" element={<EditBusinessProfile />} />
         </Routes>
       </MainLayout>
     </Router>

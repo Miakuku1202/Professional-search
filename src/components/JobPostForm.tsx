@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { useUser } from "../context/UserContext";
 
 interface JobFormData {
   company_name: string;
@@ -12,6 +13,7 @@ interface JobFormData {
   job_type: string[];
   salary: string;
   experience: string;
+  skills: string; // ✅ ADDED: Skills field
   email: string;
   contact: string;
   website: string;
@@ -26,6 +28,7 @@ const JobPostForm: React.FC = () => {
     job_type: [],
     salary: "",
     experience: "",
+    skills: "", // ✅ ADDED: Skills field
     email: "",
     contact: "",
     website: "",
@@ -33,6 +36,7 @@ const JobPostForm: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { profile } = useUser();
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -119,78 +123,23 @@ const JobPostForm: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       console.log("Current user:", user);
       
-      // Normalize company name for comparison (case-insensitive)
-      const normalizedCompanyName = formData.company_name.trim().toLowerCase();
-      console.log("Searching for company:", normalizedCompanyName);
+      if (!user) {
+        throw new Error("User not authenticated.");
+      }
+      if (profile?.user_type !== "business") {
+        throw new Error("Only business users can post jobs.");
+      }
       
-      // 1. Check if company exists (case-insensitive search) - with timeout
-      const companySearchPromise = supabase
-        .from("Companies")
-        .select("id, name")
-        .ilike("name", normalizedCompanyName)
-        .maybeSingle();
+      // No longer need to search/insert into 'Companies' table for company_id in Job_Posts
+      // as company_id will now directly be the business user's ID.
 
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Database operation timed out')), 10000)
-      );
+      // ✅ UPDATED: Parse skills from comma-separated string to array
+      const skillsArray = formData.skills
+        .split(',')
+        .map((skill: string) => skill.trim())
+        .filter((skill: string) => skill.length > 0);
 
-      const { data: companyData, error: companyFetchError } = await Promise.race([
-        companySearchPromise,
-        timeoutPromise
-      ]) as any;
-
-      if (companyFetchError) {
-        console.error("Error fetching company:", companyFetchError);
-        throw new Error("Failed to check company existence. Please try again.");
-      }
-
-      let companyId = companyData?.id;
-      console.log("Company search result:", companyData);
-
-      // 2. If company does not exist, insert it
-      if (!companyId) {
-        console.log("Creating new company...");
-        
-        // Ensure website has proper protocol
-        let websiteUrl = formData.website.trim();
-        if (websiteUrl && !websiteUrl.startsWith('http://') && !websiteUrl.startsWith('https://')) {
-          websiteUrl = 'https://' + websiteUrl;
-        }
-
-        // Simplified company insertion - remove potential problematic fields
-        const companyInsertPromise = supabase
-          .from("Companies")
-          .insert({
-            name: formData.company_name.trim(),
-            email: formData.email.trim(),
-            contact: formData.contact.trim() || 'N/A',
-            website: websiteUrl || 'https://example.com'
-          })
-          .select("id")
-          .single();
-
-        const companyTimeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Company creation timed out')), 10000)
-        );
-
-        const { data: newCompany, error: insertCompanyError } = await Promise.race([
-          companyInsertPromise,
-          companyTimeoutPromise
-        ]) as any;
-
-        if (insertCompanyError) {
-          console.error("Error inserting company:", insertCompanyError);
-          throw new Error(`Failed to create company: ${insertCompanyError.message}`);
-        }
-        
-        companyId = newCompany.id;
-        console.log("New company created with ID:", companyId);
-      } else {
-        console.log("Using existing company with ID:", companyId);
-      }
-
-      // 3. Insert job post with company_id
+      // 3. Insert job post with user's ID as company_id and skills
       console.log("Creating job post...");
       const jobInsertPromise = supabase
         .from("Job_Posts")
@@ -201,7 +150,12 @@ const JobPostForm: React.FC = () => {
           job_type: formData.job_type,
           salary: formData.salary.trim(),
           experience: formData.experience.trim() || 'Not specified',
-          company_id: companyId,
+          skills: skillsArray.length > 0 ? skillsArray : null, // ✅ ADDED: Skills array
+          contact: formData.contact.trim(),
+          email: formData.email.trim(),
+          website: formData.website.trim(),
+          company_id: profile.id, // Use the user's ID (UUID) from the profile
+          company_name: formData.company_name.trim(), // Insert company name directly
         })
         .select("id");
 
@@ -231,13 +185,14 @@ const JobPostForm: React.FC = () => {
         job_type: [],
         salary: "",
         experience: "",
+        skills: "", // ✅ ADDED: Reset skills field
         email: "",
         contact: "",
         website: "",
       });
 
       // Redirect to success page after a short delay
-      setTimeout(() => navigate("/job-posted"), 1500);
+      setTimeout(() => navigate("/job-posted"), 1500); // ✅ FIXED: Redirect to job-posted pages
 
     } catch (err: any) {
       console.error("Error posting job:", err);
@@ -361,6 +316,21 @@ const JobPostForm: React.FC = () => {
           />
         </div>
 
+        {/* ✅ ADDED: Skills Field */}
+        <div>
+          <input
+            type="text"
+            name="skills"
+            value={formData.skills}
+            onChange={handleChange}
+            placeholder="Required Skills (e.g., React, Node.js, Python)"
+            className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Separate multiple skills with commas
+          </p>
+        </div>
+
         <div>
           <input
             type="email"
@@ -414,4 +384,3 @@ const JobPostForm: React.FC = () => {
 };
 
 export default JobPostForm;
-

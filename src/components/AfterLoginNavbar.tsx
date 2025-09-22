@@ -159,6 +159,26 @@ export default function AfterLoginNavbar() {
                       Profile
                     </button>
                   </li>
+                  {effectiveUserType === "business" && (
+                    <li>
+                      <button
+                        onClick={() => handleNav("/my-job-posts")}
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                      >
+                        My Job Posts
+                      </button>
+                    </li>
+                  )}
+                  {effectiveUserType === "professional" && (
+                    <li>
+                      <button
+                        onClick={() => handleNav("/my-applied-jobs")}
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                      >
+                        My Applied Jobs
+                      </button>
+                    </li>
+                  )}
                   <li>
                     <button
                       onClick={() => handleNav("/settings")}
@@ -242,6 +262,22 @@ export default function AfterLoginNavbar() {
             >
               Profile
             </button>
+            {effectiveUserType === "business" && (
+              <button
+                onClick={() => handleNav("/my-job-posts")}
+                className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
+              >
+                My Job Posts
+              </button>
+            )}
+            {effectiveUserType === "professional" && (
+              <button
+                onClick={() => handleNav("/my-applied-jobs")}
+                className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
+              >
+                My Applied Jobs
+              </button>
+            )}
             <button
               onClick={() => handleNav("/settings")}
               className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
