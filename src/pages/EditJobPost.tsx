@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AfterLoginNavbar from "../components/AfterLoginNavbar";
 import Footer from "../components/footer";
 import JobPostForm from "../components/JobPostForm";
 import { supabase } from "../lib/supabaseClient";
-import toast from "react-hot-toast";
 import { type JobPost } from "../components/JobCard";
 
 export default function EditJobPost() {
