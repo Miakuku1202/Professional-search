@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import AfterLoginNavbar from "../components/AfterLoginNavbar";
 import {
   Download,
@@ -47,37 +47,47 @@ export default function ProfileCard() {
   const [showActions, setShowActions] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { applicantId } = useParams<{ applicantId: string }>();
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
+        let userIdToFetch = applicantId;
 
-        if (userError) {
-          setError("Failed to get user");
+        if (!applicantId) {
+          const {
+            data: { user },
+            error: userError,
+          } = await supabase.auth.getUser();
+
+          if (userError) {
+            setError("Failed to get user");
+            return;
+          }
+          if (!user) {
+            navigate("/login");
+            return;
+          }
+          userIdToFetch = user.id;
+        }
+        
+        if (!userIdToFetch) {
+          setError("User ID not available to fetch profile.");
+          setLoading(false);
           return;
         }
-        if (!user) {
-          navigate("/login");
-          return;
-        }
 
-        // ✅ FIXED: Removed .single() and added .limit(1)
         const { data: userProfileData, error: userProfileError } =
           await supabase
             .from("user_profiles")
             .select("*")
-            .eq("user_id", user.id)
+            .eq("user_id", userIdToFetch)
             .order('created_at', { ascending: false })
-            .limit(1); // ✅ Changed from .single()
+            .limit(1); 
 
         if (userProfileError) {
           setError("Error fetching profile: " + userProfileError.message);
         } else {
-          // ✅ FIXED: Access data as array
           setUserProfile(userProfileData?.[0] as UserProfile || null);
         }
       } catch {
@@ -88,7 +98,7 @@ export default function ProfileCard() {
     };
 
     fetchProfile();
-  }, [navigate]);
+  }, [navigate, applicantId]);
 
   // ✅ Fixed download function
   const handleDownload = async (format: "pdf" | "png") => {

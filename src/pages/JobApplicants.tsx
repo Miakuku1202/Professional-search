@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AfterLoginNavbar from "../components/AfterLoginNavbar";
 import Footer from "../components/footer";
@@ -27,62 +27,75 @@ export default function JobApplicants() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [jobTitle, setJobTitle] = useState<string>("");
+  const [totalApplicants, setTotalApplicants] = useState<number>(0);
+  const [approvedApplicantsCount, setApprovedApplicantsCount] = useState<number>(0);
+  const [pendingApplicantsCount, setPendingApplicantsCount] = useState<number>(0);
 
-  useEffect(() => {
-    const fetchJobAndApplicants = async () => {
-      if (!profile?.id || !jobId) {
-        setError("User or job ID not available.");
+  const fetchJobAndApplicants = useCallback(async () => {
+    if (!profile?.id || !jobId) {
+      setError("User or job ID not available.");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      // Fetch job details to get the title and verify ownership
+      const { data: jobData, error: jobError } = await supabase
+        .from("Job_Posts")
+        .select("profession, company_id")
+        .eq("id", parseInt(jobId)) // Convert jobId to number for the query
+        .single();
+
+      if (jobError) throw jobError;
+      if (!jobData || jobData.company_id !== profile.id) {
+        setError("Job not found or you don't have permission to view applicants for this job.");
         setLoading(false);
         return;
       }
+      setJobTitle(jobData.profession);
 
-      setLoading(true);
-      setError(null);
-      try {
-        // Fetch job details to get the title and verify ownership
-        const { data: jobData, error: jobError } = await supabase
-          .from("Job_Posts")
-          .select("profession, company_id")
-          .eq("id", parseInt(jobId)) // Convert jobId to number for the query
-          .single();
+      // Fetch applications for this job
+      const { data: applicationsData, error: applicationsError } = await supabase
+        .from("Applications")
+        .select(`
+          id,
+          applicant_id,
+          full_name,
+          email,
+          phone,
+          resume_url,
+          cover_letter_url,
+          status,
+          created_at
+        `)
+        .eq("job_id", parseInt(jobId)) // Convert jobId to number for the query
+        .order("created_at", { ascending: true });
 
-        if (jobError) throw jobError;
-        if (!jobData || jobData.company_id !== profile.id) {
-          setError("Job not found or you don't have permission to view applicants for this job.");
-          setLoading(false);
-          return;
-        }
-        setJobTitle(jobData.profession);
+      if (applicationsError) throw applicationsError;
+      setApplicants(applicationsData as JobApplication[]);
 
-        // Fetch applications for this job
-        const { data: applicationsData, error: applicationsError } = await supabase
-          .from("Applications")
-          .select(`
-            id,
-            applicant_id,
-            full_name,
-            email,
-            phone,
-            resume_url,
-            cover_letter_url,
-            status,
-            created_at
-          `)
-          .eq("job_id", parseInt(jobId)) // Convert jobId to number for the query
-          .order("created_at", { ascending: true });
+      // Calculate counts
+      const total = applicationsData.length;
+      const approved = applicationsData.filter(app => app.status === "approved").length;
+      const pending = applicationsData.filter(app => app.status === "pending").length;
 
-        if (applicationsError) throw applicationsError;
-        setApplicants(applicationsData as JobApplication[]);
-      } catch (err: any) {
-        console.error("Error fetching job applicants:", err);
-        setError(err.message || "Failed to fetch job applicants.");
-      } finally {
-        setLoading(false);
-      }
-    };
+      setTotalApplicants(total);
+      setApprovedApplicantsCount(approved);
+      setPendingApplicantsCount(pending);
 
+    } catch (err: any) {
+      console.error("Error fetching job applicants:", err);
+      setError(err.message || "Failed to fetch job applicants.");
+    } finally {
+      setLoading(false);
+    }
+  }, [jobId, profile?.id, setApplicants, setTotalApplicants, setApprovedApplicantsCount, setPendingApplicantsCount, setError, setLoading, setJobTitle]);
+
+  useEffect(() => {
     fetchJobAndApplicants();
-  }, [jobId, profile?.id]);
+  }, [fetchJobAndApplicants]);
 
   const handleApprove = async (applicationId: number) => {
     setLoading(true);
@@ -100,6 +113,7 @@ export default function JobApplicants() {
           app.id === applicationId ? { ...app, status: "approved" } : app
         )
       );
+      fetchJobAndApplicants(); // Refresh counts after approval
     } catch (err: any) {
       console.error("Error approving applicant:", err);
       toast.error(err.message || "Failed to approve applicant.");
@@ -160,6 +174,21 @@ export default function JobApplicants() {
           Review profiles of professionals who applied to your job post.
         </p>
 
+        <div className="flex gap-6 mb-6">
+          <div className="text-center">
+            <p className="text-xl font-bold text-gray-800">{totalApplicants}</p>
+            <p className="text-sm text-gray-500">Total</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xl font-bold text-green-600">{approvedApplicantsCount}</p>
+            <p className="text-sm text-gray-500">Approved</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xl font-bold text-yellow-600">{pendingApplicantsCount}</p>
+            <p className="text-sm text-gray-500">Pending</p>
+          </div>
+        </div>
+
         {applicants.length === 0 ? (
           <div className="text-center p-10 bg-white rounded-xl shadow-lg">
             <p className="text-gray-600 text-lg">
@@ -203,6 +232,15 @@ export default function JobApplicants() {
                 </div>
 
                 <div className="flex flex-col gap-2 mb-4">
+                  <button
+                    onClick={() => {
+                      console.log("Navigating to applicant profile for ID:", applicant.applicant_id); // Debugging line
+                      navigate(`/applicant-profile/${applicant.applicant_id}`);
+                    }}
+                    className="flex items-center justify-center gap-2 bg-purple-50 text-purple-700 py-2 px-4 rounded-lg hover:bg-purple-100 transition-colors text-sm font-medium"
+                  >
+                    <User size={16} /> View Profile
+                  </button>
                   {applicant.resume_url && (
                     <a
                       href={applicant.resume_url}

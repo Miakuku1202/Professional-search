@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-import { Phone, Mail, MapPin, Globe, Linkedin } from "lucide-react";
+import { Phone, Mail, MapPin, Globe, Linkedin, Instagram, Facebook, Youtube, Twitter, Github } from "lucide-react";
 
 interface UserProfile {
   name: string;
@@ -27,12 +27,14 @@ interface UserProfile {
 
 export default function PublicProfileCard() {
   const { userId } = useParams<{ userId: string }>();
+  console.log("useParams userId:", userId); // New debugging line
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPublicProfile = async () => {
+      console.log("Fetching public profile for userId:", userId); // Debugging line
       if (!userId) {
         setError("Invalid profile link");
         setLoading(false);
@@ -45,15 +47,18 @@ export default function PublicProfileCard() {
           .from("user_profiles")
           .select("*")
           .eq("user_id", userId)
-          .single();
+          .limit(1); // Use limit(1) instead of single()
+
+        console.log("Supabase query result:", { userProfileData, userProfileError }); // Debugging line
 
         if (userProfileError) {
-          setError("Profile not found");
+          setError("Error fetching profile: " + userProfileError.message); // More descriptive error
         } else {
-          setUserProfile(userProfileData as UserProfile);
+          setUserProfile(userProfileData?.[0] as UserProfile || null); // Access as array element
         }
-      } catch {
-        setError("Error loading profile");
+      } catch (err: any) { // Catch potential unexpected errors
+        console.error("Error loading public profile:", err);
+        setError(err.message || "Error loading profile");
       } finally {
         setLoading(false);
       }
@@ -130,6 +135,9 @@ export default function PublicProfileCard() {
             <h1 className="text-2xl font-bold text-center text-white mb-1">
               {userProfile.name}
             </h1>
+            {userProfile.profession && (
+              <p className="text-center text-white text-lg opacity-90">{userProfile.profession}</p>
+            )}
           </div>
 
           {/* Content Section - Same as your ProfileCard */}
@@ -143,6 +151,39 @@ export default function PublicProfileCard() {
               </p>
             </div>
 
+            {userProfile.experience && (
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold mb-3" style={{ color: '#2563eb' }}>
+                  Experience
+                </h2>
+                <p className="text-sm leading-relaxed" style={{ color: '#374151' }}>
+                  {userProfile.experience} years
+                </p>
+              </div>
+            )}
+
+            {userProfile.skills && (
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold mb-3" style={{ color: '#2563eb' }}>
+                  Skills
+                </h2>
+                <p className="text-sm leading-relaxed" style={{ color: '#374151' }}>
+                  {userProfile.skills}
+                </p>
+              </div>
+            )}
+
+            {userProfile.languages && (
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold mb-3" style={{ color: '#2563eb' }}>
+                  Languages
+                </h2>
+                <p className="text-sm leading-relaxed" style={{ color: '#374151' }}>
+                  {userProfile.languages}
+                </p>
+              </div>
+            )}
+
             {/* Contact Information */}
             <div className="space-y-3">
               {userProfile.mobile && (
@@ -151,6 +192,15 @@ export default function PublicProfileCard() {
                     <Phone size={16} style={{ color: '#2563eb' }} />
                   </div>
                   <span className="text-sm">{userProfile.mobile}</span>
+                </div>
+              )}
+
+              {userProfile.whatsapp && (
+                <div className="flex items-center gap-3" style={{ color: '#374151' }}>
+                  <div className="p-2 rounded-full" style={{ backgroundColor: '#dcfce7' }}>
+                    <Phone size={16} style={{ color: '#059669' }} />
+                  </div>
+                  <span className="text-sm">{userProfile.whatsapp}</span>
                 </div>
               )}
 
@@ -175,16 +225,65 @@ export default function PublicProfileCard() {
 
             {/* Social Media Links */}
             <div className="mt-6 pt-4" style={{ borderTop: '1px solid #f3f4f6' }}>
-              <div className="flex justify-center gap-4">
+              <div className="flex flex-wrap justify-center gap-4">
                 {userProfile.linkedin && (
                   <a
                     href={userProfile.linkedin}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-white p-2 rounded-full transition-colors"
-                    style={{ backgroundColor: '#2563eb' }}
+                    className="text-white p-2 rounded-full transition-colors" style={{ backgroundColor: '#2563eb' }}
                   >
                     <Linkedin size={16} />
+                  </a>
+                )}
+                {userProfile.instagram && (
+                  <a
+                    href={userProfile.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white p-2 rounded-full transition-colors" style={{ backgroundColor: '#E1306C' }}
+                  >
+                    <Instagram size={16} />
+                  </a>
+                )}
+                {userProfile.facebook && (
+                  <a
+                    href={userProfile.facebook}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white p-2 rounded-full transition-colors" style={{ backgroundColor: '#1877F2' }}
+                  >
+                    <Facebook size={16} />
+                  </a>
+                )}
+                {userProfile.youtube && (
+                  <a
+                    href={userProfile.youtube}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white p-2 rounded-full transition-colors" style={{ backgroundColor: '#FF0000' }}
+                  >
+                    <Youtube size={16} />
+                  </a>
+                )}
+                {userProfile.twitter && (
+                  <a
+                    href={userProfile.twitter}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white p-2 rounded-full transition-colors" style={{ backgroundColor: '#1DA1F2' }}
+                  >
+                    <Twitter size={16} />
+                  </a>
+                )}
+                {userProfile.github && (
+                  <a
+                    href={userProfile.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white p-2 rounded-full transition-colors" style={{ backgroundColor: '#333333' }}
+                  >
+                    <Github size={16} />
                   </a>
                 )}
                 {userProfile.website && (
@@ -192,10 +291,19 @@ export default function PublicProfileCard() {
                     href={userProfile.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-white p-2 rounded-full transition-colors"
-                    style={{ backgroundColor: '#4b5563' }}
+                    className="text-white p-2 rounded-full transition-colors" style={{ backgroundColor: '#4b5563' }}
                   >
                     <Globe size={16} />
+                  </a>
+                )}
+                {userProfile.google_my_business && (
+                  <a
+                    href={userProfile.google_my_business}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white p-2 rounded-full transition-colors" style={{ backgroundColor: '#4285F4' }}
+                  >
+                    <Globe size={16} /> {/* Using Globe icon for Google My Business for now */}
                   </a>
                 )}
               </div>
@@ -209,7 +317,7 @@ export default function PublicProfileCard() {
         </div>
 
         {/* CTA Section */}
-        <div className="mt-6 text-center">
+        {/* <div className="mt-6 text-center">
           <p className="text-gray-600 text-sm mb-4">Want to create your own professional profile?</p>
           <a 
             href="/register" 
@@ -217,7 +325,7 @@ export default function PublicProfileCard() {
           >
             Create Your Profile
           </a>
-        </div>
+        </div> */}
       </div>
     </div>
   );

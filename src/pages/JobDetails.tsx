@@ -1,6 +1,15 @@
-import  { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, MapPin, Clock, DollarSign, Building2, Calendar, Mail, Phone, Globe } from "lucide-react";
+import {
+  ArrowLeft,
+  MapPin,
+  Clock,
+  Calendar,
+  Mail,
+  Phone,
+  Globe,
+  IndianRupee,
+} from "lucide-react";
 import AfterLoginNavbar from "../components/AfterLoginNavbar";
 import Footer from "../components/footer";
 import { supabase } from "../lib/supabaseClient";
@@ -27,7 +36,7 @@ export default function JobDetails() {
     try {
       const { data, error } = await supabase
         .from("Job_Posts")
-        .select("*")
+        .select("*, deadline")
         .eq("id", id)
         .single();
 
@@ -42,12 +51,12 @@ export default function JobDetails() {
 
   const fetchCompanyInfo = async () => {
     if (!job?.company_id) return;
-    
+
     try {
       const { data, error } = await supabase
-        .from("Companies")
+        .from("businesses")
         .select("*")
-        .eq("id", job.company_id)
+        .eq("user_id", job.company_id)
         .single();
 
       if (error) throw error;
@@ -58,10 +67,10 @@ export default function JobDetails() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -90,7 +99,9 @@ export default function JobDetails() {
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Job Not Found</h2>
-            <p className="text-gray-600 mb-4">The job you're looking for doesn't exist.</p>
+            <p className="text-gray-600 mb-4">
+              The job you're looking for doesn't exist.
+            </p>
             <button
               onClick={() => navigate("/find-job")}
               className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -106,7 +117,7 @@ export default function JobDetails() {
   return (
     <div className="min-h-screen bg-gray-50">
       <AfterLoginNavbar />
-      
+
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Back Button */}
         <button
@@ -122,23 +133,28 @@ export default function JobDetails() {
           <div className="lg:col-span-2">
             {/* Job Header */}
             <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-              <div className="flex justify-between items-start mb-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900 mb-2">{job.profession}</h1>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <div className="flex items-center gap-1">
-                      <Building2 size={16} />
-                      <span>{companyInfo?.name || `Company ID: ${job.company_id}`}</span>
-                    </div>
+                  <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                    {job.profession}
+                  </h1>
+                  <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                     <div className="flex items-center gap-1">
                       <Calendar size={16} />
-                      <span>Posted {formatDate(job.created_at)}</span>
+                      <span>Posted: {formatDate(job.created_at)}</span>
                     </div>
+                    {job.deadline && (
+                      <div className="flex items-center gap-1 text-sm text-red-600">
+                        <Calendar size={16} />
+                        <span>Deadline: {formatDate(job.deadline)}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
+
                 <button
                   onClick={handleApplyNow}
-                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  className="border border-blue-600 text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50 transition-colors font-medium"
                 >
                   Apply Now
                 </button>
@@ -151,8 +167,10 @@ export default function JobDetails() {
                   <span className="text-sm font-medium">{job.location}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <DollarSign size={16} className="text-green-500" />
-                  <span className="text-sm font-medium text-green-600">{job.salary}</span>
+                  <IndianRupee size={16} className="text-green-500" />
+                  <span className="text-sm font-medium text-green-600">
+                    {job.salary}
+                  </span>
                 </div>
                 {job.experience && (
                   <div className="flex items-center gap-2">
@@ -163,34 +181,38 @@ export default function JobDetails() {
               </div>
 
               {/* Job Types */}
-              <div className="mt-4">
-                <div className="flex flex-wrap gap-2">
-                  {job.job_type.map((type, index) => (
-                    <span
-                      key={index}
-                      className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full"
-                    >
-                      {type}
-                    </span>
-                  ))}
+              {job.job_type && job.job_type.length > 0 && (
+                <div className="mt-4">
+                  <div className="flex flex-wrap gap-2">
+                    {job.job_type.map((type, index) => (
+                      <span
+                        key={index}
+                        className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full"
+                      >
+                        {type}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Job Description */}
             <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Job Description</h2>
-              <div className="prose prose-sm max-w-none">
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {job.description || "No description provided."}
-                </p>
-              </div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Job Description
+              </h2>
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {job.description || "No description provided."}
+              </p>
             </div>
 
             {/* Required Skills */}
             {job.skills && job.skills.length > 0 && (
               <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Required Skills</h2>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                  Required Skills
+                </h2>
                 <div className="flex flex-wrap gap-2">
                   {job.skills.map((skill, index) => (
                     <span
@@ -210,35 +232,40 @@ export default function JobDetails() {
             {/* Company Info */}
             {companyInfo && (
               <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">About Company</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  About Company
+                </h3>
                 <div className="space-y-3">
                   <div>
                     <h4 className="font-medium text-gray-900">{companyInfo.name}</h4>
                     <p className="text-sm text-gray-600">Company</p>
                   </div>
-                  
+
                   {companyInfo.email && (
                     <div className="flex items-center gap-2 text-sm">
                       <Mail size={16} className="text-gray-400" />
-                      <a href={`mailto:${companyInfo.email}`} className="text-blue-600 hover:underline">
+                      <a
+                        href={`mailto:${companyInfo.email}`}
+                        className="text-blue-600 hover:underline"
+                      >
                         {companyInfo.email}
                       </a>
                     </div>
                   )}
-                  
+
                   {companyInfo.contact && (
                     <div className="flex items-center gap-2 text-sm">
                       <Phone size={16} className="text-gray-400" />
                       <span className="text-gray-700">{companyInfo.contact}</span>
                     </div>
                   )}
-                  
+
                   {companyInfo.website && (
                     <div className="flex items-center gap-2 text-sm">
                       <Globe size={16} className="text-gray-400" />
-                      <a 
-                        href={companyInfo.website} 
-                        target="_blank" 
+                      <a
+                        href={companyInfo.website}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:underline"
                       >
@@ -252,30 +279,35 @@ export default function JobDetails() {
 
             {/* Contact Information */}
             <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Contact Information
+              </h3>
               <div className="space-y-3">
                 {job.email && (
                   <div className="flex items-center gap-2 text-sm">
                     <Mail size={16} className="text-gray-400" />
-                    <a href={`mailto:${job.email}`} className="text-blue-600 hover:underline">
+                    <a
+                      href={`mailto:${job.email}`}
+                      className="text-blue-600 hover:underline"
+                    >
                       {job.email}
                     </a>
                   </div>
                 )}
-                
+
                 {job.contact && (
                   <div className="flex items-center gap-2 text-sm">
                     <Phone size={16} className="text-gray-400" />
                     <span className="text-gray-700">{job.contact}</span>
                   </div>
                 )}
-                
+
                 {job.website && (
                   <div className="flex items-center gap-2 text-sm">
                     <Globe size={16} className="text-gray-400" />
-                    <a 
-                      href={job.website} 
-                      target="_blank" 
+                    <a
+                      href={job.website}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:underline"
                     >
@@ -290,7 +322,7 @@ export default function JobDetails() {
             <div className="sticky top-8">
               <button
                 onClick={handleApplyNow}
-                className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="w-full border border-blue-600 text-blue-600 py-3 px-6 rounded-lg hover:bg-blue-50 transition-colors font-medium"
               >
                 Apply for this Job
               </button>

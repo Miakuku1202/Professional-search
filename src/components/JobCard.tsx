@@ -1,6 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Clock, DollarSign, Building2, Calendar, ExternalLink } from "lucide-react";
+import { MapPin, Clock, Building2, Calendar, ExternalLink } from "lucide-react";
+import { PenSquare } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
 export interface JobPost {
   id: number;
@@ -17,6 +19,7 @@ export interface JobPost {
   email: string | null;
   website: string | null;
   created_at: string;
+  deadline?: string | null; // ✅ ADDED: Deadline field
 }
 
 interface JobCardProps {
@@ -24,9 +27,15 @@ interface JobCardProps {
   onClick?: () => void;
   showMatchingSkills?: string[];
   hideApplyButton?: boolean; // New prop to hide apply button
+  showViewApplicantsButton?: boolean; // New prop to show view applicants button
+  onViewApplicantsClick?: () => void; // New prop for view applicants button click handler
+  showEditButton?: boolean; // New prop to show edit button
+  onEditClick?: () => void; // New prop for edit button click handler
+  showDeleteButton?: boolean; // New prop to show delete button
+  onDeleteClick?: () => void; // New prop for delete button click handler
 }
 
-export default function JobCard({ job, onClick, showMatchingSkills, hideApplyButton }: JobCardProps) {
+export default function JobCard({ job, onClick, showMatchingSkills, hideApplyButton, showViewApplicantsButton, onViewApplicantsClick, showEditButton, onEditClick, showDeleteButton, onDeleteClick }: JobCardProps) {
   const navigate = useNavigate();
 
   const formatDate = (dateString: string) => {
@@ -55,8 +64,36 @@ export default function JobCard({ job, onClick, showMatchingSkills, hideApplyBut
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer border border-gray-200 hover:border-blue-300 p-6"
+      className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer border border-gray-200 hover:border-blue-300 p-6 relative"
     >
+      {/* Edit and Delete Buttons - Top Right */}
+      <div className="absolute top-3 right-3 flex space-x-2">
+        {showEditButton && onEditClick && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEditClick();
+            }}
+            className="p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 transition-colors"
+            title="Edit Job Post"
+          >
+            <PenSquare size={16} />
+          </button>
+        )}
+        {showDeleteButton && onDeleteClick && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteClick();
+            }}
+            className="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-800 transition-colors"
+            title="Delete Job Post"
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
+      </div>
+
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
@@ -69,10 +106,16 @@ export default function JobCard({ job, onClick, showMatchingSkills, hideApplyBut
           </div>
         </div>
         <div className="text-right">
-          <div className="flex items-center gap-1 text-sm text-gray-500">
+          <div className="flex items-center mt-5 gap-1 text-sm text-gray-500">
             <Calendar size={14} />
             <span>{formatDate(job.created_at)}</span>
           </div>
+          {job.deadline && (
+            <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
+              <Calendar size={14} className="text-blue-500" />
+              <span className="text-blue-500">Deadline: {new Date(job.deadline).toLocaleDateString()}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -96,8 +139,8 @@ export default function JobCard({ job, onClick, showMatchingSkills, hideApplyBut
 
         {/* Salary */}
         <div className="flex items-center gap-2 text-sm text-gray-600">
-          <DollarSign size={14} className="text-green-500 flex-shrink-0" />
-          <span className="truncate font-medium text-green-600">{job.salary}</span>
+          {/* <DollarSign size={14} className="text-green-500 flex-shrink-0" /> */}
+          <span className="truncate font-medium text-green-600">₹ {job.salary}  Salary</span>
         </div>
 
         {/* Experience */}
@@ -174,6 +217,17 @@ export default function JobCard({ job, onClick, showMatchingSkills, hideApplyBut
           <ExternalLink size={14} />
           View Details
         </button>
+        {showViewApplicantsButton && onViewApplicantsClick && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewApplicantsClick();
+            }}
+            className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+          >
+            View Applicants
+          </button>
+        )}
         {!hideApplyButton && (
           <button 
             onClick={handleApplyNow}

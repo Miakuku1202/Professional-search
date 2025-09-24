@@ -6,6 +6,8 @@ import JobCard, { type JobPost } from "../components/JobCard";
 import { useUser } from "../context/UserContext";
 import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import toast from "react-hot-toast";
 
 export default function MyJobPosts() {
   const { profile } = useUser();
@@ -13,6 +15,8 @@ export default function MyJobPosts() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const fetchMyJobPosts = async () => {
@@ -27,7 +31,7 @@ export default function MyJobPosts() {
       try {
         const { data, error } = await supabase
           .from("Job_Posts")
-          .select("*, company_name") // Select company_name directly
+          .select("*, company_name, deadline") // Select company_name and deadline directly
           .eq("company_id", profile.id) // Filter by company_id (UUID) from profile
           .order("created_at", { ascending: false });
 
@@ -45,7 +49,34 @@ export default function MyJobPosts() {
     };
 
     fetchMyJobPosts();
-  }, [profile?.id]);
+  }, [profile?.id, refreshTrigger]);
+
+  useEffect(() => {
+    if (location.state?.refresh) {
+      setRefreshTrigger(prev => prev + 1);
+      // Clear the refresh state so it doesn't trigger on subsequent visits
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state?.refresh, location.pathname, navigate]);
+
+  const handleDelete = async (jobId: number) => {
+    if (window.confirm("Are you sure you want to delete this job post? This action cannot be undone.")) {
+      try {
+        setLoading(true);
+        const { error } = await supabase.from("Job_Posts").delete().eq("id", jobId);
+        if (error) {
+          throw error;
+        }
+        toast.success("Job post deleted successfully!");
+        setRefreshTrigger(prev => prev + 1); // Trigger re-fetch
+      } catch (e: any) {
+        console.error("Error deleting job post:", e);
+        toast.error(`Failed to delete job post: ${e.message || "Unknown error"}`);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -92,6 +123,16 @@ export default function MyJobPosts() {
                   // Navigate to the JobApplicants page, passing job.id
                   navigate(`/my-job-posts/${job.id}/applicants`);
                 }}
+                showViewApplicantsButton={true}
+                onViewApplicantsClick={() => {
+                  navigate(`/my-job-posts/${job.id}/applicants`);
+                }}
+                showEditButton={true} // Show edit button for my job posts
+                onEditClick={() => {
+                  navigate(`/edit-job/${job.id}`); // Navigate to edit job page
+                }}
+                showDeleteButton={true} // Show delete button for my job posts
+                onDeleteClick={() => handleDelete(job.id)} // Pass delete handler
               />
             ))}
           </div>

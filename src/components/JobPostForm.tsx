@@ -1,9 +1,11 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
+import { type JobPost } from "../components/JobCard";
+import Modal from "./ui/Modal"; // Import the new Modal component
 
 interface JobFormData {
   company_name: string;
@@ -17,9 +19,17 @@ interface JobFormData {
   email: string;
   contact: string;
   website: string;
+  deadline: string; // ✅ ADDED: Deadline field
 }
 
-const JobPostForm: React.FC = () => {
+interface JobPostFormProps {
+  initialData?: JobPost; // For editing, pre-populate the form
+  isEditing?: boolean; // Flag to indicate if the form is in edit mode
+  jobId?: string; // The ID of the job being edited
+  onSubmissionSuccess?: () => void; // Callback to run on successful form submission
+}
+
+const JobPostForm: React.FC<JobPostFormProps> = ({ initialData, isEditing, jobId, onSubmissionSuccess }) => {
   const [formData, setFormData] = useState<JobFormData>({
     company_name: "",
     profession: "",
@@ -32,11 +42,32 @@ const JobPostForm: React.FC = () => {
     email: "",
     contact: "",
     website: "",
+    deadline: "", // ✅ ADDED: Deadline field
   });
 
   const [loading, setLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const navigate = useNavigate();
   const { profile } = useUser();
+
+  useEffect(() => {
+    if (isEditing && initialData) {
+      setFormData({
+        company_name: initialData.company_name || "",
+        profession: initialData.profession || "",
+        description: initialData.description || "",
+        location: initialData.location || "",
+        job_type: initialData.job_type || [],
+        salary: initialData.salary || "",
+        experience: initialData.experience || "",
+        skills: initialData.skills?.join(", ") || "",
+        email: initialData.email || "",
+        contact: initialData.contact || "",
+        website: initialData.website || "",
+        deadline: initialData.deadline || "",
+      });
+    }
+  }, [isEditing, initialData]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -139,66 +170,75 @@ const JobPostForm: React.FC = () => {
         .map((skill: string) => skill.trim())
         .filter((skill: string) => skill.length > 0);
 
-      // 3. Insert job post with user's ID as company_id and skills
-      console.log("Creating job post...");
-      const jobInsertPromise = supabase
-        .from("Job_Posts")
-        .insert({
-          profession: formData.profession,
-          description: formData.description.trim(),
-          location: formData.location.trim(),
-          job_type: formData.job_type,
-          salary: formData.salary.trim(),
-          experience: formData.experience.trim() || 'Not specified',
-          skills: skillsArray.length > 0 ? skillsArray : null, // ✅ ADDED: Skills array
-          contact: formData.contact.trim(),
-          email: formData.email.trim(),
-          website: formData.website.trim(),
-          company_id: profile.id, // Use the user's ID (UUID) from the profile
-          company_name: formData.company_name.trim(), // Insert company name directly
-        })
-        .select("id");
+      const jobDataToSave = {
+        profession: formData.profession,
+        description: formData.description.trim(),
+        location: formData.location.trim(),
+        job_type: formData.job_type,
+        salary: formData.salary.trim(),
+        experience: formData.experience.trim() || 'Not specified',
+        skills: skillsArray.length > 0 ? skillsArray : null,
+        contact: formData.contact.trim(),
+        email: formData.email.trim(),
+        website: formData.website.trim(),
+        deadline: formData.deadline || null,
+        company_id: profile.id, // Use the user's ID (UUID) from the profile
+        company_name: formData.company_name.trim(), // Insert company name directly
+      };
 
-      const jobTimeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Job creation timed out')), 10000)
-      );
-
-      const { data: jobData, error: insertJobError } = await Promise.race([
-        jobInsertPromise,
-        jobTimeoutPromise
-      ]) as any;
-
-      if (insertJobError) {
-        console.error("Error inserting job:", insertJobError);
-        throw new Error(`Failed to post job: ${insertJobError.message}`);
+      let response;
+      if (isEditing && jobId) {
+        console.log("Updating job post...", jobId);
+        console.log("Job data to save:", jobDataToSave);
+        response = await supabase
+          .from("Job_Posts")
+          .update(jobDataToSave)
+          .eq("id", jobId);
+        if (response.error) {
+          console.error("Supabase update error:", response.error);
+          throw response.error;
+        }
+        setShowSuccessModal(true); // Show modal instead of toast
+      } else {
+        console.log("Creating job post...");
+        response = await supabase
+          .from("Job_Posts")
+          .insert(jobDataToSave)
+          .select("id");
+        if (response.error) throw response.error;
+        toast.success("Job posted successfully!");
+        // Clear form for new post
+        setFormData({
+          company_name: "",
+          profession: "",
+          description: "",
+          location: "",
+          job_type: [],
+          salary: "",
+          experience: "",
+          skills: "",
+          email: "",
+          contact: "",
+          website: "",
+          deadline: "",
+        });
+        setTimeout(() => navigate("/job-posted"), 1500); // Redirect to job-posted page
       }
 
-      console.log("Job posted successfully with ID:", jobData[0]?.id);
-      toast.success("Job posted successfully!");
-
-      // Clear form
-      setFormData({
-        company_name: "",
-        profession: "",
-        description: "",
-        location: "",
-        job_type: [],
-        salary: "",
-        experience: "",
-        skills: "", // ✅ ADDED: Reset skills field
-        email: "",
-        contact: "",
-        website: "",
-      });
-
-      // Redirect to success page after a short delay
-      setTimeout(() => navigate("/job-posted"), 1500); // ✅ FIXED: Redirect to job-posted pages
-
     } catch (err: any) {
-      console.error("Error posting job:", err);
-      toast.error(err.message || "Failed to post job. Please try again.");
+      console.error("Error submitting job:", err);
+      toast.error(err.message || "Failed to submit job. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+    if (onSubmissionSuccess) {
+      onSubmissionSuccess();
+    } else {
+      navigate("/my-job-posts"); // Fallback navigation
     }
   };
 
@@ -367,6 +407,21 @@ const JobPostForm: React.FC = () => {
           />
         </div>
 
+        {/* ✅ ADDED: Deadline Field */}
+        <div>
+          <label htmlFor="deadline" className="block font-semibold mb-1 text-gray-700">
+            Application Deadline
+          </label>
+          <input
+            type="date"
+            id="deadline"
+            name="deadline"
+            value={formData.deadline}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
         <button
           type="submit"
           className="w-full bg-blue-600 text-white py-3 px-4 rounded-md font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -379,6 +434,13 @@ const JobPostForm: React.FC = () => {
           * Required fields
         </p>
       </form>
+      <Modal
+        isOpen={showSuccessModal}
+        onClose={handleCloseSuccessModal}
+        title="Update Successful"
+      >
+        <p>Your job post has been updated successfully!</p>
+      </Modal>
     </>
   );
 };

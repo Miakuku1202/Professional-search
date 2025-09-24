@@ -51,7 +51,7 @@ export default function FindAJob() {
       
       let query = supabase
         .from("Job_Posts")
-        .select("*", { count: "exact" })
+        .select("*, company_name, deadline") // Select company_name and deadline directly
         .order("created_at", { ascending: false });
 
       // ✅ UPDATED: Apply filters from URL params

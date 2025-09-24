@@ -25,6 +25,7 @@ import CreateBusinessProfile from "../pages/CreateBusinessProfile";
 import BusinessProfilePage from "../pages/BusinessProfile";
 import LoginRedirect from "../pages/LoginRedirect";
 import BusinessProfileCard from "../pages/BusinessProfileCard";
+import PublicProfileCard from "../pages/PublicProfileCard"; // Import PublicProfileCard
 // Edit Profile Pages
 import EditProfile from "../pages/EditProfile";
 import EditBusinessProfile from "../pages/EditBusinessProfile";
@@ -34,6 +35,7 @@ import ApplyNow from "../pages/ApplyNow";
 import MyAppliedJobs from "../pages/MyAppliedJobs"; // Import the new component
 import MyJobPosts from "../pages/MyJobPosts";
 import JobApplicants from "../pages/JobApplicants"; // Import the new component
+import EditJobPost from "../pages/EditJobPost"; // Import the new component
 
 export default function AppRoutes() {
   return (
@@ -60,6 +62,7 @@ export default function AppRoutes() {
           <Route path="/my-applied-jobs" element={<MyAppliedJobs />} /> {/* New Route for Applied Jobs */}
           <Route path="/my-job-posts" element={<MyJobPosts />} />
           <Route path="/my-job-posts/:jobId/applicants" element={<JobApplicants />} /> {/* New Route for Job Applicants */}
+          <Route path="/edit-job/:id" element={<EditJobPost />} /> {/* New Route for editing job posts */}
           <Route path="/help" element={<Help />} />
           <Route path="/how-to/:topic" element={<HowTo />} />
 
@@ -78,6 +81,7 @@ export default function AppRoutes() {
           <Route path="/profile-card" element={<ProfileCard />} />
           <Route path="/business-profile-card" element={<BusinessProfileCard />} />
           <Route path="/public-profile/:name" element={<PublicProfile />} />
+          <Route path="/applicant-profile/:userId" element={<PublicProfileCard />} /> {/* New Route for Applicant Profile */}
           
           {/* Edit Profile Routes */}
           <Route path="/edit-profile" element={<EditProfile />} />
