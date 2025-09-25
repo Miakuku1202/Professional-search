@@ -62,7 +62,7 @@ export default function LoginRedirect() {
               email: user.email || '',
               user_type: "professional",
             });
-            navigate("/home2?justLoggedIn=true");
+            navigate("/profile");
           } else {
             setProfile({
               id: user.id,
@@ -70,7 +70,7 @@ export default function LoginRedirect() {
               email: user.email || '',
               user_type: "business",
             });
-            navigate("/home2?justLoggedIn=true");
+            navigate("/business-profile");
           }
         } else {
           // New user, needs to create profile

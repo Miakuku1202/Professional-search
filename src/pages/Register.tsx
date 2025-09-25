@@ -5,7 +5,6 @@ import googleIcon from "../assets/google-icon.png";
 import emailIcon from "../assets/email-icon.webp";
 import Navbar from "../components/BeforeLoginNavbar";
 import { supabase } from "../lib/supabaseClient";
-import { FaEye, FaEyeSlash } from "react-icons/fa"; // Import eye icons
 
 export default function Register() {
   const navigate = useNavigate();
@@ -15,14 +14,11 @@ export default function Register() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState(""); // New state for confirm password
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [userType, setUserType] = useState<"professional" | "business">("professional");
   const [businessName, setBusinessName] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // New state for password visibility
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // New state for confirm password visibility
 
   // Handle Register with email + password
   const handleRegister = async (e: React.FormEvent) => {
@@ -30,12 +26,6 @@ export default function Register() {
     setError(null);
     setMessage(null);
     setLoading(true);
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      setLoading(false);
-      return;
-    }
 
     try {
       console.log('Starting registration process...');
@@ -225,7 +215,7 @@ export default function Register() {
           {/* Right Form */}
           <div className="flex-1 bg-white rounded-xl shadow-md p-8 max-w-md">
             <h2 className="text-2xl font-semibold mb-6">
-              Join Professional Search 
+              Join Professional Search
             </h2>
 
             <form onSubmit={handleRegister} className="space-y-4">
@@ -300,52 +290,17 @@ export default function Register() {
               />
 
               {/* Password */}
-              <div className="relative">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter Password"
-                  className="w-full border rounded-md pr-10 px-3 py-2"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
-                <span
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
-                  onClick={() => {
-                    setShowPassword(!showPassword);
-                    console.log("Toggling password visibility:", !showPassword);
-                  }}
-                >
-                  {showPassword ? <FaEyeSlash /> : <FaEye />}
-                </span>
-              </div>
-
-              {/* Confirm Password */}
-              <div className="relative">
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm Password"
-                  className="w-full border rounded-md pr-10 px-3 py-2"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
-                <span
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
-                  onClick={() => {
-                    setShowConfirmPassword(!showConfirmPassword);
-                    console.log("Toggling confirm password visibility:", !showConfirmPassword);
-                  }}
-                >
-                  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                </span>
-              </div>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="Enter Password"
+                className="w-full border rounded-md px-3 py-2"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+              />
 
               {/* Google Button */}
               <button

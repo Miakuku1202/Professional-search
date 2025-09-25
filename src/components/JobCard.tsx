@@ -1,14 +1,23 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Clock, Building2, Calendar, ExternalLink } from "lucide-react";
-import { PenSquare } from "lucide-react";
-import { Trash2 } from "lucide-react";
+import { 
+  MapPin, 
+  Clock, 
+  
+  Building2, 
+  Calendar, 
+  ExternalLink,
+  PenSquare,
+  Trash2,
+  Users,
+  IndianRupee
+} from "lucide-react";
 
 export interface JobPost {
   id: number;
   profession: string;
   company_id: string | null;
-  company_name: string; // Add company_name to the interface
+  company_name: string;
   description: string | null;
   location: string;
   job_type: string[];
@@ -19,23 +28,40 @@ export interface JobPost {
   email: string | null;
   website: string | null;
   created_at: string;
-  deadline?: string | null; // ✅ ADDED: Deadline field
+  deadline?: string | null; // ✅ MERGED: Added deadline field
 }
 
 interface JobCardProps {
   job: JobPost;
   onClick?: () => void;
   showMatchingSkills?: string[];
-  hideApplyButton?: boolean; // New prop to hide apply button
-  showViewApplicantsButton?: boolean; // New prop to show view applicants button
-  onViewApplicantsClick?: () => void; // New prop for view applicants button click handler
-  showEditButton?: boolean; // New prop to show edit button
-  onEditClick?: () => void; // New prop for edit button click handler
-  showDeleteButton?: boolean; // New prop to show delete button
-  onDeleteClick?: () => void; // New prop for delete button click handler
+  hideApplyButton?: boolean;
+  // ✅ MERGED: Enhanced button control props
+  showViewApplicantsButton?: boolean;
+  onViewApplicantsClick?: () => void;
+  showEditButton?: boolean;
+  onEditClick?: () => void;
+  showDeleteButton?: boolean;
+  onDeleteClick?: () => void;
+  // ✅ NEW: Additional display options
+  variant?: 'default' | 'compact' | 'detailed';
+  showSalaryIcon?: boolean;
 }
 
-export default function JobCard({ job, onClick, showMatchingSkills, hideApplyButton, showViewApplicantsButton, onViewApplicantsClick, showEditButton, onEditClick, showDeleteButton, onDeleteClick }: JobCardProps) {
+export default function JobCard({ 
+  job, 
+  onClick, 
+  showMatchingSkills, 
+  hideApplyButton,
+  showViewApplicantsButton,
+  onViewApplicantsClick,
+  showEditButton,
+  onEditClick,
+  showDeleteButton,
+  onDeleteClick,
+  
+  showSalaryIcon = true
+}: JobCardProps) {
   const navigate = useNavigate();
 
   const formatDate = (dateString: string) => {
@@ -49,13 +75,26 @@ export default function JobCard({ job, onClick, showMatchingSkills, hideApplyBut
     return date.toLocaleDateString();
   };
 
-  // ✅ ADDED: Handle view details
+  // ✅ NEW: Check if deadline is approaching
+  const isDeadlineApproaching = () => {
+    if (!job.deadline) return false;
+    const deadline = new Date(job.deadline);
+    const now = new Date();
+    const diffInDays = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return diffInDays <= 3 && diffInDays > 0;
+  };
+
+  // ✅ NEW: Check if deadline has passed
+  const isDeadlinePassed = () => {
+    if (!job.deadline) return false;
+    return new Date(job.deadline) < new Date();
+  };
+
   const handleViewDetails = (e: React.MouseEvent) => {
     e.stopPropagation();
     navigate(`/job-details/${job.id}`, { state: { job } });
   };
 
-  // ✅ ADDED: Handle apply now
   const handleApplyNow = (e: React.MouseEvent) => {
     e.stopPropagation();
     navigate("/apply-now", { state: { job } });
@@ -64,56 +103,77 @@ export default function JobCard({ job, onClick, showMatchingSkills, hideApplyBut
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer border border-gray-200 hover:border-blue-300 p-6 relative"
+      className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer border hover:border-blue-300 p-6 relative ${
+        isDeadlinePassed() ? 'border-red-200 bg-red-50' : 'border-gray-200'
+      }`}
     >
-      {/* Edit and Delete Buttons - Top Right */}
-      <div className="absolute top-3 right-3 flex space-x-2">
-        {showEditButton && onEditClick && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEditClick();
-            }}
-            className="p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 transition-colors"
-            title="Edit Job Post"
-          >
-            <PenSquare size={16} />
-          </button>
-        )}
-        {showDeleteButton && onDeleteClick && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDeleteClick();
-            }}
-            className="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-800 transition-colors"
-            title="Delete Job Post"
-          >
-            <Trash2 size={16} />
-          </button>
-        )}
-      </div>
+      {/* ✅ MERGED: Edit and Delete Buttons - Top Right */}
+      {(showEditButton || showDeleteButton) && (
+        <div className="absolute top-3 right-3 flex space-x-2">
+          {showEditButton && onEditClick && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditClick();
+              }}
+              className="p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 transition-colors"
+              title="Edit Job Post"
+            >
+              <PenSquare size={16} />
+            </button>
+          )}
+          {showDeleteButton && onDeleteClick && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteClick();
+              }}
+              className="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-800 transition-colors"
+              title="Delete Job Post"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
           <h3 className="font-semibold text-lg text-gray-900 mb-1">
             {job.profession}
+            {/* ✅ NEW: Deadline warning indicator */}
+            {isDeadlineApproaching() && (
+              <span className="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                Deadline Soon
+              </span>
+            )}
+            {isDeadlinePassed() && (
+              <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                Expired
+              </span>
+            )}
           </h3>
           <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
             <Building2 size={14} />
-            <span>{job.company_name || "Not specified"}</span> {/* Display company_name */}
+            <span>{job.company_name || "Not specified"}</span>
           </div>
         </div>
         <div className="text-right">
-          <div className="flex items-center mt-5 gap-1 text-sm text-gray-500">
+          <div className={`flex items-center gap-1 text-sm text-gray-500 ${
+            showEditButton || showDeleteButton ? 'mt-5' : ''
+          }`}>
             <Calendar size={14} />
             <span>{formatDate(job.created_at)}</span>
           </div>
+          {/* ✅ MERGED: Deadline display */}
           {job.deadline && (
-            <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
-              <Calendar size={14} className="text-blue-500" />
-              <span className="text-blue-500">Deadline: {new Date(job.deadline).toLocaleDateString()}</span>
+            <div className={`flex items-center gap-1 text-sm mt-1 ${
+              isDeadlinePassed() ? 'text-red-600' : 
+              isDeadlineApproaching() ? 'text-orange-600' : 'text-blue-500'
+            }`}>
+              <Calendar size={14} />
+              <span>Deadline: {new Date(job.deadline).toLocaleDateString()}</span>
             </div>
           )}
         </div>
@@ -137,10 +197,12 @@ export default function JobCard({ job, onClick, showMatchingSkills, hideApplyBut
           <span className="truncate">{job.location}</span>
         </div>
 
-        {/* Salary */}
+        {/* ✅ MERGED: Enhanced Salary Display */}
         <div className="flex items-center gap-2 text-sm text-gray-600">
-          {/* <DollarSign size={14} className="text-green-500 flex-shrink-0" /> */}
-          <span className="truncate font-medium text-green-600">₹ {job.salary}  Salary</span>
+          {showSalaryIcon && <IndianRupee size={14} className="text-green-500 flex-shrink-0" />}
+          <span className="truncate font-medium text-green-600">
+            {showSalaryIcon ? job.salary : `₹ ${job.salary} Salary`}
+          </span>
         </div>
 
         {/* Experience */}
@@ -169,7 +231,7 @@ export default function JobCard({ job, onClick, showMatchingSkills, hideApplyBut
         <div className="mb-4">
           <h4 className="text-xs font-medium text-gray-700 mb-2">Required Skills:</h4>
           <div className="flex flex-wrap gap-1">
-            {job.skills && job.skills.slice(0, 6).map((skill, index) => {
+            {job.skills.slice(0, 6).map((skill, index) => {
               const isMatching = showMatchingSkills?.includes(skill.toLowerCase());
               return (
                 <span
@@ -208,32 +270,42 @@ export default function JobCard({ job, onClick, showMatchingSkills, hideApplyBut
         </div>
       )}
 
-      {/* ✅ ADDED: Action Buttons */}
-      <div className="border-t border-gray-100 pt-4 flex gap-2">
+      {/* ✅ MERGED: Enhanced Action Buttons */}
+      <div className="border-t border-gray-100 pt-4 flex gap-2 flex-wrap">
         <button 
           onClick={handleViewDetails}
-          className="flex-1 flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+          className="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
         >
           <ExternalLink size={14} />
           View Details
         </button>
+        
+        {/* ✅ MERGED: View Applicants Button */}
         {showViewApplicantsButton && onViewApplicantsClick && (
           <button
             onClick={(e) => {
               e.stopPropagation();
               onViewApplicantsClick();
             }}
-            className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+            className="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
           >
+            <Users size={14} />
             View Applicants
           </button>
         )}
+        
+        {/* Apply Button */}
         {!hideApplyButton && (
           <button 
             onClick={handleApplyNow}
-            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+            disabled={isDeadlinePassed()}
+            className={`flex-1 min-w-[120px] py-2 px-4 rounded-lg transition-colors text-sm font-medium ${
+              isDeadlinePassed() 
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
           >
-            Apply Now
+            {isDeadlinePassed() ? 'Deadline Passed' : 'Apply Now'}
           </button>
         )}
       </div>
