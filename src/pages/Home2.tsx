@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import AfterLoginNavbar from "../components/AfterLoginNavbar";
 import Hero from "../components/hero";
-import Stats from "../components/stats";
 import PopularSearches from "../components/popular_searches";
 import ChoosePath from "../components/choosepath";
 import Domains from "../components/domain";
@@ -49,7 +48,7 @@ export default function Home2() {
       <Toaster position="top-center" reverseOrder={false} />
       <AfterLoginNavbar />
       <Hero />
-      <Stats />
+  
       <PopularSearches />
       <ChoosePath />
       <Domains />

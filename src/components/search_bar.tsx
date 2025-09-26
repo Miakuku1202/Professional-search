@@ -122,21 +122,37 @@ export default function SearchBar({
       }
 
       // ✅ 2) Search Businesses (only if there's a text query)
-      const businessesQuery = trimmed
-        ? supabase
+      let businessesQueryBuilder = null;
+      if (trimmed) {
+        businessesQueryBuilder = supabase
             .from("businesses")
             .select("id, business_name, logo_url, industry")
             .or(`business_name.ilike.%${trimmed}%,industry.ilike.%${trimmed}%`)
-            .limit(Math.ceil(effectiveLimit * 0.2)) // Allocate 20% to businesses
+            .limit(Math.ceil(effectiveLimit * 0.2)); // Allocate 20% to businesses
+
+        if (locationText && locationText.trim()) {
+          businessesQueryBuilder = businessesQueryBuilder.ilike("address", `%${locationText.trim()}%`);
+        }
+      }
+      const businessesQuery = businessesQueryBuilder
+        ? businessesQueryBuilder
         : Promise.resolve({ data: [] as any[], error: null });
 
       // ✅ 3) Search Companies (only if there's a text query)
-      const companiesQuery = trimmed
-        ? supabase
+      let companiesQueryBuilder = null;
+      if (trimmed) {
+        companiesQueryBuilder = supabase
             .from("Companies")
             .select("id, name")
             .ilike("name", `%${trimmed}%`)
-            .limit(Math.ceil(effectiveLimit * 0.2)) // Allocate 20% to companies
+            .limit(Math.ceil(effectiveLimit * 0.2)); // Allocate 20% to companies
+
+        if (locationText && locationText.trim()) {
+          companiesQueryBuilder = companiesQueryBuilder.ilike("address", `%${locationText.trim()}%`);
+        }
+      }
+      const companiesQuery = companiesQueryBuilder
+        ? companiesQueryBuilder
         : Promise.resolve({ data: [] as any[], error: null });
 
       // Execute all queries in parallel

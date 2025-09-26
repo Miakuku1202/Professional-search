@@ -68,13 +68,28 @@ export default function MyJobPosts() {
         setLoading(true);
         
         // ✅ Enhanced: First delete related applications
-        const { error: applicationsError } = await supabase
+        const { data: existingApplications, error: fetchApplicationsError } = await supabase
           .from("Applications")
-          .delete()
+          .select("id")
           .eq("job_id", jobId);
 
-        if (applicationsError) {
-          console.warn("Warning: Could not delete related applications:", applicationsError);
+        if (fetchApplicationsError) {
+          console.warn("Warning: Could not fetch related applications for deletion check:", fetchApplicationsError);
+          // Proceed with deletion anyway, but log the warning
+        }
+
+        if (existingApplications && existingApplications.length > 0) {
+          const { error: applicationsError } = await supabase
+            .from("Applications")
+            .delete()
+            .eq("job_id", jobId);
+  
+          if (applicationsError) {
+            console.error("Error deleting related applications:", applicationsError);
+            throw applicationsError; // Stop if applications cannot be deleted
+          }
+        } else {
+          console.log("No related applications found for job ID:", jobId);
         }
 
         // Delete the job post
@@ -82,7 +97,7 @@ export default function MyJobPosts() {
           .from("Job_Posts")
           .delete()
           .eq("id", jobId);
-
+  
         if (error) {
           throw error;
         }

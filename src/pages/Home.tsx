@@ -4,7 +4,7 @@ import { useUser } from "../context/UserContext";
 
 // Import all components
 import Hero from "../components/hero";
-import Stats from "../components/stats";
+
 import PopularSearches from "../components/popular_searches";
 import ChoosePath from "../components/choosepath";
 import Domains from "../components/domain";
@@ -41,7 +41,7 @@ export default function Home() {
       <Hero />
       
       {/* Platform Statistics */}
-      <Stats />
+   
       
       {/* Popular Search Terms */}
       <PopularSearches />
